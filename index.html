@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta property="og:title" content="Roshan's Build Site">
+<meta property="og:description" content="A playable 3D BIM construction site showing J K Roshan Kerketta's automation tools.">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0;font-size:14px}[hidden]{display:none!important}</style>
+<title>Roshan's Build Site</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A playable 3D BIM construction site. Drive to each plot to assemble J K Roshan Kerketta's automation tools and see how they work.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed 3D site; HUD pinned to the corners; plot card docks bottom-right (bottom sheet on phones). Single deliberate night-site look. */
+:root{
+  --night:#0f141a;      /* sky / page ground */
+  --slab:#1a2129;       /* panels */
+  --concrete:#c9ccc4;   /* text, concrete */
+  --steel:#7d8a96;      /* muted text */
+  --blueprint:#5ec8ff;  /* BIM wireframe, links */
+  --hivis:#ff8a1f;      /* site vehicle, primary action */
+  --line:#2b3541;
+  --ok:#7fd6a0;
+  --f-display:"Saira Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--night);color:var(--concrete);font-family:var(--f-body);overflow:hidden;-webkit-tap-highlight-color:transparent}
+#scene{position:fixed;inset:0;display:block;width:100%;height:100%;touch-action:none}
+.hud{position:fixed;inset:0;pointer-events:none;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:max(14px,env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-bottom,0px));}
+.hud > *{pointer-events:auto}
+.brand{position:absolute;top:inherit;left:inherit;display:grid;gap:6px;max-width:min(360px,calc(100vw - 32px))}
+.brand{top:max(14px,env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px))}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel)}
+.brand h1{margin:0;font-family:var(--f-display);font-weight:800;font-size:30px;line-height:.95;letter-spacing:.01em;text-transform:uppercase;color:var(--concrete);text-wrap:balance}
+.brand h1 span{color:var(--hivis)}
+.meter{display:grid;gap:4px;margin-top:4px}
+.meter-row{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:11px;color:var(--steel);font-variant-numeric:tabular-nums}
+.meter-row b{color:var(--concrete);font-weight:500}
+.bar{height:8px;background:var(--slab);border:1px solid var(--line);position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;width:0%;background:repeating-linear-gradient(-45deg,var(--hivis) 0 6px,#ffb066 6px 12px);transition:width .5s ease}
+.top-right{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));display:grid;justify-items:end;gap:8px}
+#minimap{width:132px;height:132px;background:rgba(15,20,26,.78);border:1px solid var(--line);display:block}
+.btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+button{font:inherit;cursor:pointer}
+.chip-btn{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--concrete);background:rgba(26,33,41,.9);border:1px solid var(--line);padding:7px 10px}
+.chip-btn:hover{border-color:var(--blueprint);color:var(--blueprint)}
+.chip-btn:focus-visible,.cta:focus-visible,.plot-list button:focus-visible,.card a:focus-visible{outline:2px solid var(--blueprint);outline-offset:2px}
+.hint{position:absolute;left:50%;transform:translateX(-50%);bottom:max(16px,env(safe-area-inset-bottom,0px));font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;color:var(--steel);background:rgba(15,20,26,.7);border:1px solid var(--line);padding:6px 10px;white-space:nowrap}
+.hint kbd{font-family:inherit;color:var(--concrete);border:1px solid var(--line);padding:0 4px}
+.toast{position:absolute;left:50%;top:max(84px,calc(env(safe-area-inset-top,0px) + 70px));transform:translate(-50%,-8px);opacity:0;transition:opacity .25s,transform .25s;font-family:var(--f-display);font-size:20px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--night);background:var(--hivis);padding:6px 14px;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* Plot card */
+.card{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));width:min(380px,calc(100vw - 32px));background:rgba(20,26,33,.96);border:1px solid var(--line);border-top:3px solid var(--blueprint);padding:16px 16px 14px;display:grid;gap:10px;transform:translateY(12px);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
+.card.show{opacity:1;transform:none;pointer-events:auto}
+.card .sheet-no{font-family:var(--f-mono);font-size:11px;color:var(--steel);letter-spacing:.1em;display:flex;justify-content:space-between;gap:8px}
+.card h2{margin:0;font-family:var(--f-display);font-size:28px;line-height:1;font-weight:700;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
+.card p{margin:0;font-size:14px;line-height:1.5;color:#aeb4ad}
+.status{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border:1px solid currentColor}
+.status.done{color:var(--ok)}.status.wip{color:var(--hivis)}
+.flow{list-style:none;margin:0;padding:0;display:grid;gap:0;position:relative}
+.flow li{position:relative;display:grid;grid-template-columns:20px 1fr;align-items:center;gap:8px;font-size:13px;padding:4px 0;color:var(--concrete)}
+.flow li::before{content:"";width:9px;height:9px;border:2px solid var(--blueprint);background:var(--night);justify-self:center;z-index:1;transform:rotate(45deg)}
+.flow li:not(:last-child)::after{content:"";position:absolute;left:9px;top:18px;bottom:-8px;width:2px;background:var(--line)}
+.flow li.lit::before{background:var(--blueprint)}
+.flow li.lit{color:#fff}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-family:var(--f-mono);font-size:11px;color:var(--blueprint);border:1px solid rgba(94,200,255,.35);padding:2px 6px}
+.card a{color:var(--blueprint);font-size:13px}
+
+/* Overlays */
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 30%,rgba(15,20,26,.55),rgba(15,20,26,.92) 70%);overflow:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:max(24px,env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-bottom,0px));z-index:5}
+.panel{width:min(620px,100%);display:grid;gap:18px}
+.panel .titleblock{border:1px solid var(--line);display:grid;grid-template-columns:1fr auto;background:rgba(20,26,33,.85)}
+.panel .titleblock > div{padding:12px 14px;min-width:0}
+.panel .titleblock > div + div{border-left:1px solid var(--line);font-family:var(--f-mono);font-size:11px;color:var(--steel);display:grid;gap:2px;align-content:center;white-space:nowrap}
+.panel h2{margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(40px,9vw,68px);line-height:.88;text-transform:uppercase;letter-spacing:.005em;text-wrap:balance}
+.panel h2 span{color:var(--hivis)}
+.panel p{margin:0;max-width:60ch;line-height:1.55;color:#b6bbb4;font-size:15px}
+.cta{justify-self:start;font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.06em;text-transform:uppercase;color:var(--night);background:var(--hivis);border:0;padding:12px 26px 10px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,0 100%)}
+.cta:hover{background:#ffa04a}
+.plot-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.plot-list button{width:100%;text-align:left;background:rgba(26,33,41,.8);border:1px solid var(--line);color:var(--concrete);padding:8px 10px;font-size:13px;display:flex;justify-content:space-between;gap:6px}
+.plot-list button:hover{border-color:var(--blueprint)}
+.plot-list .tick{font-family:var(--f-mono);font-size:11px;color:var(--steel)}
+.plot-list .built .tick{color:var(--ok)}
+.links{display:flex;gap:14px;flex-wrap:wrap;font-size:14px}
+.links a{color:var(--blueprint)}
+.small{font-family:var(--f-mono);font-size:11px;color:var(--steel);letter-spacing:.04em}
+
+/* Joystick */
+.joy{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));width:120px;height:120px;border-radius:50%;border:1px solid var(--line);background:rgba(15,20,26,.55);display:none;touch-action:none}
+.joy i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:var(--hivis);opacity:.85}
+@media (pointer:coarse){.joy{display:block}.hint{display:none}}
+@media (max-width:560px){
+  .brand h1{font-size:24px}
+  #minimap{width:96px;height:96px}
+  .card{left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;bottom:max(150px,calc(env(safe-area-inset-bottom,0px) + 150px));max-height:48vh;overflow:auto}
+}
+@media (prefers-reduced-motion:reduce){.card,.toast,.bar i{transition:none}}
+.noscript{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
+</style>
+</head>
+<body>
+
+<canvas id="scene" aria-label="3D construction site"></canvas>
+
+<div class="hud" id="hud" aria-live="polite">
+  <div class="brand">
+    <div class="eyebrow">OBMI · Dubai · BIM automation</div>
+    <h1>Roshan's <span>Build Site</span></h1>
+    <div class="meter">
+      <div class="meter-row"><span>Model completeness</span><b id="pct">0%</b></div>
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="meter-row"><span>Plots built <b id="plots">0/9</b></span><span>Data packets <b id="packets">0/24</b></span></div>
+    </div>
+  </div>
+  <div class="top-right">
+    <canvas id="minimap" width="264" height="264" aria-label="Site map"></canvas>
+    <div class="btns">
+      <button class="chip-btn" id="tourBtn" type="button">Auto tour</button>
+      <button class="chip-btn" id="menuBtn" type="button">Plots</button>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="hint" id="hint">Drive <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows · <kbd>Shift</kbd> boost · drive onto a glowing plot</div>
+  <div class="joy" id="joy"><i id="knob"></i></div>
+
+  <article class="card" id="card" aria-label="Plot details">
+    <div class="sheet-no"><span id="cSheet">SHEET A-101</span><span class="status" id="cStatus">Completed</span></div>
+    <h2 id="cTitle">Title</h2>
+    <p id="cDesc"></p>
+    <ol class="flow" id="cFlow"></ol>
+    <div class="tags" id="cTags"></div>
+    <div id="cLink"></div>
+  </article>
+</div>
+
+<div class="overlay" id="start">
+  <div class="panel">
+    <div class="titleblock">
+      <div>
+        <div class="eyebrow">Interactive portfolio · drawing no. JKR-000</div>
+      </div>
+      <div><span>SCALE 1:200</span><span>REV P01</span></div>
+    </div>
+    <h2>Roshan's <span>Build Site</span></h2>
+    <p>I'm J K Roshan Kerketta, a BIM Manager, architect and automation developer at OBMI in Dubai. Every plot on this site is a tool I've built. Drive onto a plot to assemble it floor by floor and see how the workflow runs. Collect the data packets to bring the model to 100%.</p>
+    <button class="cta" id="playBtn" type="button">Start building</button>
+    <div class="small">Keyboard: WASD or arrows, Shift to boost. Phone: drag the orange joystick. Prefer a quick look? Use Auto tour.</div>
+    <ul class="plot-list" id="plotList"></ul>
+    <div class="links">
+      <a href="https://github.com/roshanjohnOBMI" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.linkedin.com/in/j-k-roshan-kerketta-a2a4a669" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="https://kuldeep3618x.github.io/roshan-cv/" target="_blank" rel="noopener">CV</a>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="win" hidden>
+  <div class="panel">
+    <div class="titleblock"><div><div class="eyebrow">Status: issued for construction</div></div><div><span>REV C01</span><span>100%</span></div></div>
+    <h2>Model <span>federated</span></h2>
+    <p>Every plot is built and every packet is in. That's the toolkit: Revit and Navisworks add-ins, Autodesk Platform Services apps, and Power Platform pipelines that keep BIM delivery moving on airports, stadiums, towers and giga-projects.</p>
+    <div class="links">
+      <a href="https://www.linkedin.com/in/j-k-roshan-kerketta-a2a4a669" target="_blank" rel="noopener">Connect on LinkedIn</a>
+      <a href="https://kuldeep3618x.github.io/roshan-cv/" target="_blank" rel="noopener">Read the CV</a>
+      <a href="https://github.com/roshanjohnOBMI" target="_blank" rel="noopener">See the code</a>
+    </div>
+    <button class="cta" id="againBtn" type="button">Keep driving</button>
+  </div>
+</div>
+
+<noscript><div class="noscript">This site needs JavaScript to draw the 3D construction site.</div></noscript>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- Content ---------- */
+const PLOTS = [
+  {id:"meridian", name:"OBMI Meridian", status:"wip", kind:"tower", floors:11,
+   desc:"Command centre for OBMI's BIM data. One place to deploy add-ins, share credentials safely and track usage across the office.",
+   flow:["Sign in with Autodesk ID","Pick add-ins from the catalogue","Deploy to Revit and Navisworks","Usage reported back","Admin dashboard"],
+   tags:["Node.js","Express","APS","Azure"]},
+  {id:"health", name:"ACC Model Health Check", status:"done", kind:"block", floors:6,
+   desc:"Automated health reports for Revit models hosted on Autodesk Construction Cloud.",
+   flow:["Connect to the ACC hub","Pull models through APS","Run model checks","Score each model","Publish the report"],
+   tags:["Node.js","APS","ACC"]},
+  {id:"tidp", name:"TIDP / MIDP Checker", status:"done", kind:"slab", floors:4,
+   desc:"Checks information delivery plans against what's actually on ACC, so gaps show up before a submission.",
+   flow:["Load the delivery plan","Read ACC deliverables","Match and compare","Flag the gaps","Status report"],
+   tags:["Node.js","APS","ACC"]},
+  {id:"workset", name:"Workset Manager", status:"done", kind:"block", floors:7,
+   desc:"pyRevit extension that assigns elements to worksets in bulk, driven by category, family name and Excel rules.",
+   flow:["Import rules from Excel","Match by category and family","Preview in a two-panel window","Assign in bulk","Clean, consistent model"],
+   tags:["Python","pyRevit","WPF"]},
+  {id:"comments", name:"ClashCommentSync", status:"done", kind:"hangar", floors:3,
+   desc:"Navisworks add-in that round-trips clash comments through Excel so the whole team can respond in one sheet.",
+   flow:["Read clash results","Export to Excel","Team adds comments","Import back","Clashes updated"],
+   tags:["C#","Navisworks API","ClosedXML"]},
+  {id:"tolerance", name:"Clash Tolerance Updater", status:"done", kind:"slab", floors:5,
+   desc:"Updates tolerances on many clash tests at once through the Navisworks Clash API.",
+   flow:["Select clash tests","Copy each test","Edit the tolerance","Commit changes","Done in one pass"],
+   tags:["C#","Navisworks API"]},
+  {id:"powerbi", name:"ACC → Power BI Live Data", status:"done", kind:"datacentre", floors:3,
+   desc:"Live Revit data in Power BI Online through the APS Data Exchange GraphQL API, with no desktop tools needed.",
+   flow:["Revit model on ACC","Data Exchange GraphQL query","Transform in Power Query Online","Scheduled dataflow refresh","Live dashboard"],
+   tags:["Power Query M","GraphQL","APS","Power BI"]},
+  {id:"move30", name:"OBMI Move30", status:"wip", kind:"stadium", floors:4,
+   desc:"Web app for OBMI's Dubai 30x30 Wellness Challenge, with Microsoft 365 sign-in and wearable sync.",
+   flow:["Sign in with Microsoft 365","Log activity or sync a wearable","Team leaderboard","30 minutes a day, 30 days"],
+   tags:["React","PWA","Microsoft 365"]},
+  {id:"costing", name:"obmiAppCosting", status:"done", kind:"tower", floors:6,
+   desc:"Costing app for OBMI's internal applications.",
+   flow:["Enter app scope","Estimate effort","Cost breakdown"],
+   tags:["TypeScript"], link:"https://github.com/roshanjohnOBMI/obmiAppCosting"}
+];
+const PACKET_COUNT = 24;
+
+/* ---------- Renderer / scene ---------- */
+if(!window.THREE){document.getElementById('start').querySelector('p').textContent="The 3D engine couldn't load. Check your connection and reload the page.";return;}
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+const scene = new THREE.Scene();
+const SKY = 0x0f141a;
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 55, 120);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 300);
+const camOffset = new THREE.Vector3(0, 21, 23);
+let zoom = 1;
+
+scene.add(new THREE.HemisphereLight(0x9fb8d6, 0x1a1410, 0.55));
+const sun = new THREE.DirectionalLight(0xffe2c0, 0.95);
+sun.position.set(-30, 50, 20);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+const sc = sun.shadow.camera; sc.left=-60; sc.right=60; sc.top=60; sc.bottom=-60; sc.far=140;
+scene.add(sun);
+
+/* Ground: compacted site, roads ring, blueprint grid */
+const ground = new THREE.Mesh(new THREE.CircleGeometry(90, 64), new THREE.MeshStandardMaterial({color:0x232a30, roughness:1}));
+ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
+const grid = new THREE.GridHelper(180, 90, 0x2f4a5e, 0x24313c);
+grid.position.y = 0.01; grid.material.transparent = true; grid.material.opacity = .55; scene.add(grid);
+const road = new THREE.Mesh(new THREE.RingGeometry(19.5, 23.5, 96), new THREE.MeshStandardMaterial({color:0x171c21, roughness:.9}));
+road.rotation.x = -Math.PI/2; road.position.y = .02; road.receiveShadow = true; scene.add(road);
+// dashed centre line
+for(let i=0;i<72;i++){
+  const a=i/72*Math.PI*2; const d=new THREE.Mesh(new THREE.PlaneGeometry(.18,1.1), new THREE.MeshBasicMaterial({color:0xd9c27a}));
+  d.rotation.x=-Math.PI/2; d.rotation.z=-a; d.position.set(Math.cos(a)*21.5,.03,Math.sin(a)*21.5); scene.add(d);
+}
+// site boundary hoarding
+const hoard = new THREE.Mesh(new THREE.CylinderGeometry(46,46,1.6,96,1,true), new THREE.MeshStandardMaterial({color:0x2b343d, side:THREE.DoubleSide, roughness:.8}));
+hoard.position.y=.8; scene.add(hoard);
+const hoardStripe = new THREE.Mesh(new THREE.CylinderGeometry(46.02,46.02,.25,96,1,true), new THREE.MeshBasicMaterial({color:0xff8a1f, side:THREE.DoubleSide}));
+hoardStripe.position.y=1.45; scene.add(hoardStripe);
+const BOUND = 44;
+
+/* ---------- Helpers ---------- */
+const mats = {
+  concrete: new THREE.MeshStandardMaterial({color:0xc9ccc4, roughness:.85}),
+  glass: new THREE.MeshStandardMaterial({color:0x2a5f86, roughness:.15, metalness:.4, emissive:0x0d3a5a, emissiveIntensity:.6}),
+  steel: new THREE.MeshStandardMaterial({color:0x7d8a96, roughness:.5, metalness:.6}),
+  hivis: new THREE.MeshStandardMaterial({color:0xff8a1f, roughness:.55}),
+  dark: new THREE.MeshStandardMaterial({color:0x14191e, roughness:.8}),
+  wire: new THREE.LineBasicMaterial({color:0x5ec8ff, transparent:true, opacity:.55})
+};
+function labelSprite(text, sub){
+  const c=document.createElement('canvas'); c.width=512; c.height=128;
+  const g=c.getContext('2d');
+  g.fillStyle='rgba(15,20,26,.82)'; g.fillRect(0,18,512,92);
+  g.fillStyle='#5ec8ff'; g.fillRect(0,18,6,92);
+  g.font='700 44px "Saira Condensed","Arial Narrow",sans-serif'; g.fillStyle='#e8eae4'; g.textBaseline='middle';
+  g.fillText(text.toUpperCase(),22,54,470);
+  g.font='500 22px "IBM Plex Mono",monospace'; g.fillStyle='#7d8a96'; g.fillText(sub,22,92,470);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=4;
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t, transparent:true, depthWrite:false}));
+  s.scale.set(8,2,1); return s;
+}
+function edges(geo, mat){ return new THREE.LineSegments(new THREE.EdgesGeometry(geo), mat||mats.wire); }
+function at(o,p){ o.position.copy(p); return o; }
+const ease = t => 1 - Math.pow(1 - t, 3);
+
+/* ---------- Central site office + tower crane ---------- */
+const crane = new THREE.Group(); scene.add(crane);
+const mast = new THREE.Mesh(new THREE.BoxGeometry(1,18,1), mats.hivis); mast.position.y=9; mast.castShadow=true; crane.add(mast);
+crane.add(at(edges(new THREE.BoxGeometry(1.02,18,1.02), new THREE.LineBasicMaterial({color:0x2b1a08})),new THREE.Vector3(0,9,0)));
+const jibPivot = new THREE.Group(); jibPivot.position.y=18; crane.add(jibPivot);
+const jib = new THREE.Mesh(new THREE.BoxGeometry(22,.7,.7), mats.hivis); jib.position.x=6; jib.castShadow=true; jibPivot.add(jib);
+const counter = new THREE.Mesh(new THREE.BoxGeometry(2.2,1.4,1.4), mats.concrete); counter.position.set(-4.5,-.4,0); jibPivot.add(counter);
+const cab = new THREE.Mesh(new THREE.BoxGeometry(1.4,1.2,1.4), mats.glass); cab.position.set(.6,-1,0); jibPivot.add(cab);
+const trolley = new THREE.Group(); trolley.position.x=12; jibPivot.add(trolley);
+const cable = new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,8), mats.steel); cable.position.y=-4; trolley.add(cable);
+const hook = new THREE.Mesh(new THREE.BoxGeometry(1.6,.6,1.6), mats.concrete); hook.position.y=-8.2; hook.castShadow=true; trolley.add(hook);
+const office = new THREE.Mesh(new THREE.BoxGeometry(6,2.4,3), new THREE.MeshStandardMaterial({color:0xe9e6dc, roughness:.7}));
+office.position.set(4,1.2,-4); office.castShadow=office.receiveShadow=true; scene.add(office);
+const officeLbl = labelSprite("Site office", "J K ROSHAN KERKETTA"); officeLbl.position.set(4,4.4,-4); scene.add(officeLbl);
+const colliders = [{x:0,z:0,hw:.9,hd:.9},{x:4,z:-4,hw:3.2,hd:1.7}];
+
+/* ---------- Plots ---------- */
+const RING_PAD = 26.5, RING_BLD = 33;
+const plots = PLOTS.map((p,i)=>{
+  const a = -Math.PI/2 + i/PLOTS.length*Math.PI*2;
+  const dir = new THREE.Vector2(Math.cos(a), Math.sin(a));
+  const pad = new THREE.Vector3(dir.x*RING_PAD, 0, dir.y*RING_PAD);
+  const site = new THREE.Vector3(dir.x*RING_BLD, 0, dir.y*RING_BLD);
+  const g = new THREE.Group(); g.position.copy(site); g.rotation.y = -a + Math.PI/2; scene.add(g);
+
+  // footprint sizes per kind
+  const dims = {tower:[4.2,4.2,1.25], block:[6.5,5,1.05], slab:[8,4,1.05], hangar:[8.5,6,1.4], datacentre:[7.5,6,1.3], stadium:[0,0,1.1]}[p.kind];
+  const [w,d,fh] = dims;
+  const floors = [];
+  const ghost = new THREE.Group(); g.add(ghost);
+
+  if(p.kind==="stadium"){
+    for(let f=0; f<p.floors; f++){
+      const r = 2.6 + f*.75;
+      const tier = new THREE.Mesh(new THREE.CylinderGeometry(r+.9, r, fh, 40, 1, true), f%2?mats.concrete:mats.steel);
+      tier.material = tier.material.clone(); tier.material.side = THREE.DoubleSide;
+      tier.position.y = fh/2 + f*fh; tier.castShadow = true; floors.push(tier);
+      ghost.add(at(edges(new THREE.CylinderGeometry(r+.9, r, fh, 20, 1, true)),tier.position));
+    }
+    const pitch = new THREE.Mesh(new THREE.CircleGeometry(2.6, 40), new THREE.MeshStandardMaterial({color:0x2f7d4f, roughness:1}));
+    pitch.rotation.x=-Math.PI/2; pitch.position.y=.05; g.add(pitch);
+  } else {
+    for(let f=0; f<p.floors; f++){
+      const fl = new THREE.Group();
+      const taper = p.kind==="tower" ? 1 - f*0.025 : 1;
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(w*taper, .22, d*taper), mats.concrete);
+      slab.position.y = fh - .11; slab.castShadow = slab.receiveShadow = true; fl.add(slab);
+      const glass = new THREE.Mesh(new THREE.BoxGeometry(w*taper*.94, fh-.22, d*taper*.94), p.kind==="hangar"? mats.steel : mats.glass);
+      glass.position.y = (fh-.22)/2; glass.castShadow = true; fl.add(glass);
+      if(p.kind!=="hangar"){ // mullions
+        for(let m=-2;m<=2;m++){ const mu=new THREE.Mesh(new THREE.BoxGeometry(.1,fh-.22,d*taper*.96), mats.concrete); mu.position.set(m*w*taper*.2,(fh-.22)/2,0); fl.add(mu); }
+      }
+      fl.position.y = f*fh; floors.push(fl);
+      ghost.add(at(edges(new THREE.BoxGeometry(w*taper, fh, d*taper)),new THREE.Vector3(0,f*fh+fh/2,0)));
+    }
+    if(p.kind==="hangar"){
+      const roof = new THREE.Mesh(new THREE.CylinderGeometry(d/2, d/2, w, 24, 1, false, 0, Math.PI), mats.steel);
+      roof.rotation.set(0,0,Math.PI/2); roof.scale.set(.5,1,1); roof.position.y = p.floors*fh; roof.castShadow=true;
+      floors.push(roof);
+    }
+    if(p.kind==="tower"){
+      const ant = new THREE.Mesh(new THREE.CylinderGeometry(.08,.12,3), mats.steel); ant.position.y = p.floors*fh + 1.5; floors.push(ant);
+    }
+    if(p.kind==="datacentre"){ // live bar chart on the roof
+      const bars = new THREE.Group(); bars.position.y = p.floors*fh;
+      [1.2,2.4,1.8,3.2,2.6].forEach((h,k)=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(.9,1,.9), mats.hivis); b.position.set(-2.4+k*1.2,h/2,0); b.scale.y=h; b.userData.base=h; b.castShadow=true; bars.add(b); });
+      floors.push(bars); g.userData.bars = bars;
+    }
+  }
+  floors.forEach(f=>{ f.visible=false; g.add(f); f.userData.y = f.position.y; });
+
+  // beacon on tallest
+  let beacon=null;
+  if(p.id==="meridian"){ beacon = new THREE.PointLight(0xff4a3a, 0, 14); beacon.position.y = p.floors*fh+3.2; g.add(beacon);
+    const bm = new THREE.Mesh(new THREE.SphereGeometry(.22,10,10), new THREE.MeshBasicMaterial({color:0xff4a3a})); bm.position.copy(beacon.position); g.add(bm); beacon.userData.mesh=bm; }
+
+  // pad: setting-out ring on the ground
+  const padRing = new THREE.Mesh(new THREE.RingGeometry(2.1, 2.6, 48), new THREE.MeshBasicMaterial({color:0x5ec8ff, transparent:true, opacity:.85, side:THREE.DoubleSide}));
+  padRing.rotation.x=-Math.PI/2; padRing.position.set(pad.x,.05,pad.z); scene.add(padRing);
+  const padFill = new THREE.Mesh(new THREE.CircleGeometry(2.1, 48), new THREE.MeshBasicMaterial({color:0x5ec8ff, transparent:true, opacity:.12}));
+  padFill.rotation.x=-Math.PI/2; padFill.position.set(pad.x,.04,pad.z); scene.add(padFill);
+  const lbl = labelSprite(p.name, `PLOT ${String(i+1).padStart(2,'0')} · ${p.status==="wip"?"IN PROGRESS":"COMPLETED"}`);
+  const height = p.kind==="stadium" ? p.floors*fh + 2 : p.floors*fh + (p.kind==="tower"?4:2);
+  lbl.position.set(site.x, height + 2.2, site.z); scene.add(lbl);
+
+  const radius = p.kind==="stadium" ? 2.6 + (p.floors-1)*.75 + .9 : 0;
+  // collider (axis-aligned approx in world, using rotated footprint bounding)
+  const ca=Math.abs(Math.cos(g.rotation.y)), sa=Math.abs(Math.sin(g.rotation.y));
+  const hw = radius || (w*ca + d*sa)/2, hd = radius || (w*sa + d*ca)/2;
+  colliders.push(radius ? {x:site.x, z:site.z, r:radius} : {x:site.x, z:site.z, hw:hw*.95, hd:hd*.95});
+
+  return {...p, i, a, pad, site, group:g, floors, ghost, padRing, padFill, lbl, beacon, built:false, buildT:-1, sheet:`A-${101+i}`};
+});
+
+/* ---------- Data packets ---------- */
+const packetGeo = new THREE.OctahedronGeometry(.45);
+const packetMat = new THREE.MeshStandardMaterial({color:0x5ec8ff, emissive:0x2a9fd6, emissiveIntensity:1.1, roughness:.3});
+function rnd(seed){ let s=seed; return ()=>{ s=(s*16807)%2147483647; return (s-1)/2147483646; }; }
+const R = rnd(42);
+const packets=[];
+while(packets.length<PACKET_COUNT){
+  const ang=R()*Math.PI*2, rad=7+R()*35;
+  const x=Math.cos(ang)*rad, z=Math.sin(ang)*rad;
+  if(colliders.some(c=>c.r ? Math.hypot(x-c.x,z-c.z)<c.r+1.5 : Math.abs(x-c.x)<c.hw+1.5 && Math.abs(z-c.z)<c.hd+1.5)) continue;
+  if(plots.some(p=>Math.hypot(x-p.pad.x,z-p.pad.z)<3.5)) continue;
+  if(packets.some(p=>Math.hypot(x-p.mesh.position.x,z-p.mesh.position.z)<3)) continue;
+  const m=new THREE.Mesh(packetGeo, packetMat); m.position.set(x,1.1,z); m.castShadow=true; scene.add(m);
+  packets.push({mesh:m, got:false, phase:R()*6});
+}
+
+/* ---------- Site vehicle ---------- */
+const truck = new THREE.Group(); scene.add(truck);
+const body = new THREE.Mesh(new THREE.BoxGeometry(1.6,.8,2.6), mats.hivis); body.position.y=.75; body.castShadow=true; truck.add(body);
+const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.4,.8,1.1), mats.glass); cabin.position.set(0,1.5,-.55); cabin.castShadow=true; truck.add(cabin);
+const roofBar = new THREE.Mesh(new THREE.BoxGeometry(1.1,.14,.3), new THREE.MeshBasicMaterial({color:0xffc04a})); roofBar.position.set(0,1.98,-.55); truck.add(roofBar);
+const bucket = new THREE.Mesh(new THREE.BoxGeometry(1.9,.55,.6), mats.steel); bucket.position.set(0,.5,-1.65); truck.add(bucket);
+const wheels=[];
+[[-.85,.35,.8],[.85,.35,.8],[-.85,.35,-.8],[.85,.35,-.8]].forEach(p=>{ const wh=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.32,16), mats.dark); wh.rotation.z=Math.PI/2; wh.position.set(...p); wh.castShadow=true; truck.add(wh); wheels.push(wh); });
+const headlight = new THREE.SpotLight(0xfff1d6, 1.2, 18, .5, .6); headlight.position.set(0,1.1,-1.3); truck.add(headlight); headlight.target.position.set(0,0,-8); truck.add(headlight.target);
+truck.position.set(-9,0,13);
+let heading = Math.PI*0.75, speed = 0;
+// crane mast fades when it sits between the camera and the vehicle
+const mastMat = mats.hivis.clone(); mastMat.transparent = true; mast.material = mastMat;
+
+/* ---------- Input ---------- */
+const keys = {};
+addEventListener('keydown', e=>{ if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault(); keys[e.key.toLowerCase()]=true; if(autoTarget!==null && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase())) stopTour(); });
+addEventListener('keyup', e=>{ keys[e.key.toLowerCase()]=false; });
+addEventListener('wheel', e=>{ zoom = Math.min(1.5, Math.max(.6, zoom + e.deltaY*.0008)); }, {passive:true});
+const joy=document.getElementById('joy'), knob=document.getElementById('knob');
+let joyVec={x:0,y:0}, joyId=null;
+function joyMove(e){ const r=joy.getBoundingClientRect(); let x=(e.clientX-(r.left+r.width/2))/(r.width/2), y=(e.clientY-(r.top+r.height/2))/(r.height/2); const l=Math.hypot(x,y); if(l>1){x/=l;y/=l;} joyVec={x,y}; knob.style.transform=`translate(${x*36}px,${y*36}px)`; }
+joy.addEventListener('pointerdown', e=>{ joyId=e.pointerId; joy.setPointerCapture(joyId); joyMove(e); if(autoTarget!==null) stopTour(); });
+joy.addEventListener('pointermove', e=>{ if(e.pointerId===joyId) joyMove(e); });
+const joyEnd=e=>{ if(e.pointerId===joyId){ joyId=null; joyVec={x:0,y:0}; knob.style.transform=''; } };
+joy.addEventListener('pointerup', joyEnd); joy.addEventListener('pointercancel', joyEnd);
+
+/* ---------- UI ---------- */
+const $ = id => document.getElementById(id);
+const card=$('card'), toastEl=$('toast');
+let toastTimer=0;
+function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.classList.remove('show'),1800); }
+let gotPackets=0;
+function updateMeter(){
+  const built=plots.filter(p=>p.built).length;
+  const pct=Math.round(built/plots.length*80 + gotPackets/PACKET_COUNT*20);
+  $('pct').textContent=pct+'%'; $('barFill').style.width=pct+'%';
+  $('plots').textContent=`${built}/${plots.length}`; $('packets').textContent=`${gotPackets}/${PACKET_COUNT}`;
+  renderPlotList();
+  if(pct>=100 && !won){ won=true; setTimeout(()=>{ $('win').hidden=false; },900); }
+}
+let won=false, activePlot=null, flowTimer=0;
+function showCard(p){
+  if(activePlot===p) return; activePlot=p;
+  $('cSheet').textContent=`SHEET ${p.sheet} · PLOT ${String(p.i+1).padStart(2,'0')}`;
+  const st=$('cStatus'); st.textContent=p.status==="wip"?"In progress":"Completed"; st.className='status '+(p.status==="wip"?'wip':'done');
+  $('cTitle').textContent=p.name; $('cDesc').textContent=p.desc;
+  const fl=$('cFlow'); fl.innerHTML=''; p.flow.forEach(s=>{ const li=document.createElement('li'); li.textContent=s; fl.appendChild(li); });
+  const tg=$('cTags'); tg.innerHTML=''; p.tags.forEach(t=>{ const s=document.createElement('span'); s.textContent=t; tg.appendChild(s); });
+  const lk=$('cLink'); lk.innerHTML=''; if(p.link){ const a=document.createElement('a'); a.href=p.link; a.target='_blank'; a.rel='noopener'; a.textContent='View the repository'; lk.appendChild(a); } else { lk.innerHTML='<span class="small">Internal tool · source not public</span>'; }
+  card.classList.add('show');
+  // light the workflow steps one by one, looping
+  clearInterval(flowTimer); let k=0; const items=[...fl.children];
+  const step=()=>{ items.forEach((li,j)=>li.classList.toggle('lit', j<=k)); k=(k+1)%(items.length+1); };
+  step(); if(!reduceMotion) flowTimer=setInterval(step, 650); else items.forEach(li=>li.classList.add('lit'));
+}
+function hideCard(){ if(!activePlot) return; activePlot=null; card.classList.remove('show'); clearInterval(flowTimer); }
+function renderPlotList(){
+  const ul=$('plotList'); ul.innerHTML='';
+  plots.forEach(p=>{ const li=document.createElement('li'); if(p.built) li.className='built';
+    const b=document.createElement('button'); b.type='button';
+    b.innerHTML=`<span></span><span class="tick">${p.built?'BUILT':'PLOT '+String(p.i+1).padStart(2,'0')}</span>`; b.firstChild.textContent=p.name;
+    b.addEventListener('click',()=>{ closeStart(); goTo(p); }); li.appendChild(b); ul.appendChild(li); });
+}
+let started=false;
+function closeStart(){ $('start').hidden=true; started=true; canvas.focus?.(); }
+$('playBtn').addEventListener('click', closeStart);
+$('menuBtn').addEventListener('click', ()=>{ $('start').hidden=false; $('playBtn').textContent='Back to the site'; });
+$('againBtn').addEventListener('click', ()=>{ $('win').hidden=true; });
+// Auto tour: drive to each unbuilt plot in turn
+let autoTarget=null, touring=false;
+function goTo(p){ autoTarget=p; }
+function stopTour(){ autoTarget=null; touring=false; $('tourBtn').textContent='Auto tour'; }
+$('tourBtn').addEventListener('click', ()=>{
+  if(touring){ stopTour(); return; }
+  touring=true; $('tourBtn').textContent='Stop tour';
+  nextTourStop();
+});
+function nextTourStop(){
+  const next = plots.find(p=>!p.built);
+  if(!next){ stopTour(); toast('Tour done. Grab the last packets'); return; }
+  autoTarget = next;
+}
+
+/* ---------- Minimap ---------- */
+const mm=$('minimap'), mg=mm.getContext('2d');
+function drawMinimap(){
+  const W=mm.width, s=W/100; mg.clearRect(0,0,W,W);
+  mg.save(); mg.translate(W/2,W/2);
+  mg.strokeStyle='rgba(255,138,31,.6)'; mg.lineWidth=2; mg.beginPath(); mg.arc(0,0,46*s,0,7); mg.stroke();
+  mg.strokeStyle='#2b3541'; mg.lineWidth=4*s; mg.beginPath(); mg.arc(0,0,21.5*s,0,7); mg.stroke();
+  plots.forEach(p=>{ mg.fillStyle=p.built?'#c9ccc4':'rgba(94,200,255,.35)'; mg.fillRect(p.site.x*s-5,p.site.z*s-5,10,10);
+    mg.strokeStyle='#5ec8ff'; mg.lineWidth=2; mg.beginPath(); mg.arc(p.pad.x*s,p.pad.z*s,3.5,0,7); mg.stroke(); });
+  mg.fillStyle='#5ec8ff'; packets.forEach(k=>{ if(!k.got){ mg.fillRect(k.mesh.position.x*s-1.5,k.mesh.position.z*s-1.5,3,3);} });
+  mg.translate(truck.position.x*s, truck.position.z*s); mg.rotate(-heading);
+  mg.fillStyle='#ff8a1f'; mg.beginPath(); mg.moveTo(0,-9); mg.lineTo(6,6); mg.lineTo(-6,6); mg.closePath(); mg.fill();
+  mg.restore();
+}
+
+/* ---------- Build animation ---------- */
+function startBuild(p){
+  if(p.built || p.buildT>=0) return;
+  p.buildT = 0; toast(`Assembling ${p.name}`);
+}
+function tickBuild(p, dt){
+  if(p.buildT<0) return;
+  p.buildT += dt;
+  const per = reduceMotion ? 0 : .22, dur = reduceMotion ? .01 : .45;
+  p.floors.forEach((f,k)=>{
+    const t = Math.min(1, Math.max(0, (p.buildT - k*per)/dur));
+    if(t>0){ f.visible=true; f.position.y = f.userData.y + (1-ease(t))*6; const sc=.6+.4*ease(t); f.scale.x = f.scale.z = sc; if(f.userData.base===undefined && !f.isGroup) {} }
+  });
+  if(p.buildT > p.floors.length*per + dur){
+    p.buildT=-1; p.built=true; p.ghost.visible=false;
+    p.floors.forEach(f=>{ f.position.y=f.userData.y; f.scale.x=f.scale.z=1; });
+    p.padRing.material.color.set(0x7fd6a0); p.padFill.material.color.set(0x7fd6a0);
+    burst(p.site); toast(`${p.name} built`); updateMeter();
+    if(touring) setTimeout(()=>{ if(touring) nextTourStop(); }, 2600);
+  }
+}
+// dust/confetti burst
+const bursts=[];
+function burst(pos){
+  if(reduceMotion) return;
+  const n=60, geo=new THREE.BufferGeometry(), arr=new Float32Array(n*3), vel=[];
+  for(let i=0;i<n;i++){ arr[i*3]=pos.x; arr[i*3+1]=2; arr[i*3+2]=pos.z; vel.push(new THREE.Vector3((Math.random()-.5)*10, 6+Math.random()*8, (Math.random()-.5)*10)); }
+  geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  const pts=new THREE.Points(geo, new THREE.PointsMaterial({color:0xffb066, size:.35, transparent:true}));
+  scene.add(pts); bursts.push({pts,vel,life:1.4});
+}
+
+/* ---------- Loop ---------- */
+const clock=new THREE.Clock();
+const tmpV=new THREE.Vector3();
+function resize(){ const w=innerWidth, h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.fov = w<600 ? 58 : 45; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+function collide(){
+  const r=1.3;
+  colliders.forEach(c=>{
+    const dx=truck.position.x-c.x, dz=truck.position.z-c.z;
+    if(c.r){ const d=Math.hypot(dx,dz), m=c.r+r; if(d<m && d>0){ truck.position.x=c.x+dx/d*m; truck.position.z=c.z+dz/d*m; speed*=.6; } return; }
+    const px=c.hw+r-Math.abs(dx), pz=c.hd+r-Math.abs(dz);
+    if(px>0 && pz>0){ if(px<pz) truck.position.x += Math.sign(dx)*px; else truck.position.z += Math.sign(dz)*pz; speed*=.6; }
+  });
+  const d=Math.hypot(truck.position.x, truck.position.z);
+  if(d>BOUND){ truck.position.x*=BOUND/d; truck.position.z*=BOUND/d; speed*=.5; }
+}
+
+function frame(){
+  const dt=Math.min(.1, clock.getDelta()), t=clock.elapsedTime;
+
+  // --- movement: screen-relative 8-way input
+  let ix=0, iz=0;
+  if(started){
+    if(keys['w']||keys['arrowup']) iz-=1; if(keys['s']||keys['arrowdown']) iz+=1;
+    if(keys['a']||keys['arrowleft']) ix-=1; if(keys['d']||keys['arrowright']) ix+=1;
+    if(joyVec.x||joyVec.y){ ix=joyVec.x; iz=joyVec.y; }
+  }
+  if(autoTarget && !ix && !iz){
+    // route around the crane and site office: if the straight line passes the centre, head out to the road first
+    let gx=autoTarget.pad.x, gz=autoTarget.pad.z;
+    const px=truck.position.x, pz=truck.position.z, sx=gx-px, sz=gz-pz, L2=sx*sx+sz*sz||1;
+    const tt=Math.max(0,Math.min(1,-(px*sx+pz*sz)/L2)), cx=px+sx*tt, cz=pz+sz*tt;
+    if(Math.hypot(cx,cz)<10 && Math.hypot(px,pz)<21){
+      const pa=Math.atan2(pz,px), ga=Math.atan2(gz,gx); let da=((ga-pa+Math.PI*3)%(Math.PI*2))-Math.PI;
+      const wa=pa+Math.sign(da||1)*Math.min(Math.abs(da),.9); gx=Math.cos(wa)*21.5; gz=Math.sin(wa)*21.5;
+    }
+    const tx=gx-px, tz=gz-pz, dist=Math.hypot(tx,tz);
+    if(dist>1.2){ ix=tx/dist; iz=tz/dist; if(dist<5){ ix*=dist/5; iz*=dist/5; } }
+    else if(!touring) autoTarget=null;
+  }
+  const mag=Math.min(1, Math.hypot(ix,iz));
+  const boost = keys['shift'] ? 1.6 : 1;
+  const maxSpd = 14*boost;
+  if(mag>.05){
+    const want=Math.atan2(ix, iz) + Math.PI; // vehicle faces -z by default
+    let diff=((want-heading+Math.PI*3)%(Math.PI*2))-Math.PI;
+    heading += diff*Math.min(1, dt*8);
+    speed += (maxSpd*mag - speed)*Math.min(1,dt*3);
+  } else speed += (0-speed)*Math.min(1,dt*4);
+  truck.rotation.y = heading;
+  truck.position.x += -Math.sin(heading)*speed*dt;
+  truck.position.z += -Math.cos(heading)*speed*dt;
+  collide();
+  wheels.forEach(w=>w.rotation.x -= speed*dt/.38);
+  body.position.y = .75 + Math.sin(t*20)*.015*Math.min(1,speed/6);
+  roofBar.material.color.setHSL(.1, 1, Math.sin(t*8)>0 ? .6 : .35);
+
+  // --- camera follow
+  const off=tmpV.copy(camOffset).multiplyScalar(zoom);
+  const target=new THREE.Vector3(truck.position.x+off.x, off.y, truck.position.z+off.z);
+  camera.position.lerp(target, Math.min(1, dt*4));
+  camera.lookAt(truck.position.x, 1, truck.position.z-2);
+  sun.position.set(truck.position.x-30, 50, truck.position.z+20); sun.target.position.copy(truck.position); sun.target.updateMatrixWorld();
+
+  // --- crane
+  const blocking = truck.position.z < 2 && truck.position.z > -26 && Math.abs(truck.position.x) < 7;
+  mastMat.opacity += ((blocking ? .18 : 1) - mastMat.opacity) * Math.min(1, dt*6);
+  if(!reduceMotion){ jibPivot.rotation.y = t*.18; trolley.position.x = 9 + Math.sin(t*.5)*4; hook.position.y = -8.2 + Math.sin(t*.7)*1.5; cable.scale.y = (-hook.position.y)/8.2; cable.position.y = hook.position.y/2; }
+
+  // --- packets
+  packets.forEach(k=>{
+    if(k.got) return;
+    k.mesh.rotation.y += dt*2; k.mesh.position.y = 1.1 + Math.sin(t*2+k.phase)*.25;
+    if(Math.hypot(k.mesh.position.x-truck.position.x, k.mesh.position.z-truck.position.z) < 1.8){
+      k.got=true; scene.remove(k.mesh); gotPackets++; toast(`Data packet ${gotPackets}/${PACKET_COUNT}`); updateMeter();
+    }
+  });
+
+  // --- plots
+  let onPlot=null;
+  plots.forEach(p=>{
+    const d=Math.hypot(truck.position.x-p.pad.x, truck.position.z-p.pad.z);
+    const pulse = p.built ? .5 : .55+.35*Math.sin(t*3+p.i);
+    p.padRing.material.opacity = pulse; p.padRing.scale.setScalar(p.built?1:1+.05*Math.sin(t*3+p.i));
+    if(!p.built) p.ghost.children.forEach(l=>l.material.opacity=.35+.2*Math.sin(t*2+p.i));
+    if(d<2.8){ onPlot=p; startBuild(p); }
+    tickBuild(p, dt);
+    if(p.beacon && p.built){ const on=Math.sin(t*4)>.6; p.beacon.intensity=on?2:0; p.beacon.userData.mesh.material.color.set(on?0xff4a3a:0x3a1210); }
+    if(p.group.userData.bars && p.built && !reduceMotion){ p.group.userData.bars.children.forEach((b,k)=>{ const h=b.userData.base*(.7+.35*Math.sin(t*1.6+k)); b.scale.y=h; b.position.y=h/2; }); }
+  });
+  if(onPlot) showCard(onPlot); else hideCard();
+  if(autoTarget && onPlot===autoTarget && autoTarget.built && touring){ /* wait for next stop timer */ }
+
+  // --- bursts
+  for(let i=bursts.length-1;i>=0;i--){ const b=bursts[i]; b.life-=dt; const pos=b.pts.geometry.attributes.position;
+    for(let j=0;j<b.vel.length;j++){ b.vel[j].y-=20*dt; pos.array[j*3]+=b.vel[j].x*dt; pos.array[j*3+1]=Math.max(.1,pos.array[j*3+1]+b.vel[j].y*dt); pos.array[j*3+2]+=b.vel[j].z*dt; }
+    pos.needsUpdate=true; b.pts.material.opacity=Math.max(0,b.life/1.4); if(b.life<=0){ scene.remove(b.pts); bursts.splice(i,1); } }
+
+  renderer.render(scene, camera);
+  drawMinimap();
+  requestAnimationFrame(frame);
+}
+renderPlotList(); updateMeter();
+// Labels draw with web fonts once they've loaded
+document.fonts && document.fonts.ready.then(()=>{ plots.forEach(p=>{ const fresh=labelSprite(p.name, `PLOT ${String(p.i+1).padStart(2,'0')} · ${p.status==="wip"?"IN PROGRESS":"COMPLETED"}`); fresh.position.copy(p.lbl.position); scene.remove(p.lbl); scene.add(fresh); p.lbl=fresh; }); });
+frame();
+})();
+</script>
+
+</body>
+</html>
