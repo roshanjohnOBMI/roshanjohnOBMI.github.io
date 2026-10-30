@@ -8,73 +8,87 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: header, then app list (left) + routing diagram (right); detail panel under the diagram. Single night-site look. */
+/* Layout: deep-space backdrop canvas behind everything; header, then app list + routing diagram (glass panel) with a storm overlay; detail panel below. Single night/space look. */
 :root{
-  --night:#0b1016; --panel:#121a22; --panel2:#17212b; --line:#243140;
-  --concrete:#d5d8d0; --steel:#7d8a96; --blueprint:#5ec8ff; --hivis:#ff8a1f; --ok:#7fd6a0;
+  --void:#03050c; --panel:rgba(10,16,30,.62); --panel-solid:#0b1222; --line:rgba(120,170,255,.16);
+  --concrete:#dfe6f2; --steel:#8391a8; --plasma:#6fd3ff; --hivis:#ff8a1f; --ok:#7fd6a0; --nebula:#7b5cff;
   --f-display:"Saira Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--night);color:var(--concrete);font-family:var(--f-body)}
-body{background:radial-gradient(1200px 600px at 70% -10%,#13263a 0,transparent 60%),var(--night)}
-.wrap{max-width:1360px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+html,body{margin:0;background:var(--void);color:var(--concrete);font-family:var(--f-body);min-height:100%}
+#space{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
+.wrap{position:relative;z-index:1;max-width:1380px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px;margin-bottom:22px}
-.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--steel)}
-h1{margin:6px 0 0;font-family:var(--f-display);font-weight:800;font-size:clamp(34px,5vw,56px);line-height:.9;text-transform:uppercase;letter-spacing:.01em}
-h1 span{color:var(--hivis)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--steel)}
+h1{margin:6px 0 0;font-family:var(--f-display);font-weight:800;font-size:clamp(36px,5.4vw,62px);line-height:.88;text-transform:uppercase;letter-spacing:.01em;text-shadow:0 0 28px rgba(111,211,255,.25)}
+h1 span{background:linear-gradient(100deg,#ffb35a,#ff8a1f 40%,#ff5fa2);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(255,138,31,.35))}
 .status{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.pill{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);padding:6px 10px;color:var(--steel);background:rgba(18,26,34,.8)}
+.pill{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);padding:7px 11px;color:var(--steel);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .pill b{color:var(--ok);font-weight:500}
-.pill.warn b{color:var(--hivis)}
+.pill.live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--plasma);box-shadow:0 0 10px var(--plasma);margin-right:8px;vertical-align:1px;animation:beat 1.6s ease-in-out infinite}
+@keyframes beat{50%{opacity:.3}}
 .grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;align-items:start}
 .grid>div{min-width:0}
 @media (max-width:900px){.grid{grid-template-columns:1fr}}
 .apps{display:grid;gap:6px;max-height:calc(100vh - 160px);overflow:auto;padding-right:4px}
 @media (max-width:900px){.apps{max-height:none;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}}
-.search{width:100%;font:inherit;font-size:14px;color:var(--concrete);background:var(--panel);border:1px solid var(--line);padding:10px 12px;margin-bottom:8px}
-.search:focus-visible,.app:focus-visible,.node:focus-visible,button:focus-visible{outline:2px solid var(--blueprint);outline-offset:2px}
-.app{all:unset;cursor:pointer;display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--c);transition:background .15s,transform .15s}
-.app:hover{background:var(--panel2);transform:translateX(2px)}
-.app[aria-pressed="true"]{background:#1b2a38;box-shadow:inset 0 0 0 1px var(--c)}
-.app .dot{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
+.search{width:100%;font:inherit;font-size:14px;color:var(--concrete);background:var(--panel);border:1px solid var(--line);padding:10px 12px;margin-bottom:8px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.search:focus-visible,.app:focus-visible,.node:focus-visible,button:focus-visible{outline:2px solid var(--plasma);outline-offset:2px}
+.app{all:unset;cursor:pointer;display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;padding:11px 12px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--c);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s,transform .2s,box-shadow .2s}
+.app:hover{background:rgba(26,40,70,.7);transform:translateX(3px)}
+.app[aria-pressed="true"]{background:rgba(30,50,90,.75);box-shadow:0 0 0 1px var(--c),0 0 26px -6px var(--c)}
+.app .dot{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 12px var(--c)}
 .app .nm{font-weight:600;font-size:14px;min-width:0}
 .app .ct{font-family:var(--f-mono);font-size:11px;color:var(--steel)}
-.app.dim{opacity:.35}
-.stage{position:relative;background:var(--panel);border:1px solid var(--line);overflow-x:auto}
-.stage svg{display:block;min-width:900px;width:100%;height:auto}
+.app.dim{opacity:.4}
+.stage{position:relative;border:1px solid var(--line);overflow-x:auto;background:
+  radial-gradient(60% 80% at 15% 20%,rgba(123,92,255,.16),transparent 60%),
+  radial-gradient(50% 70% at 85% 70%,rgba(0,170,255,.14),transparent 60%),
+  rgba(6,10,22,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);box-shadow:inset 0 0 80px rgba(80,140,255,.08),0 0 60px -20px rgba(111,211,255,.25)}
 .zap{position:relative;min-width:900px}
+.zap svg{display:block;width:100%;height:auto}
 .zap canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:screen}
-.flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at var(--fx,50%) var(--fy,0%),rgba(150,215,255,.35),transparent 60%);opacity:0}
-.colhead{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;fill:var(--steel)}
+.flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at var(--fx,50%) 0%,rgba(170,225,255,.42),rgba(120,140,255,.08) 45%,transparent 70%);opacity:0}
+.colhead{font-family:var(--f-mono);font-size:11px;letter-spacing:.18em;fill:#9fb3d6}
+.lane{fill:url(#laneGrad)}
 .node{cursor:pointer}
-.node rect{fill:#0f161e;stroke-width:1.4;transition:fill .2s}
+.node .pill-bg{fill:rgba(8,14,28,.88);stroke-width:1.4;transition:fill .25s}
+.node .halo{opacity:.0;transition:opacity .3s}
 .node text{font-family:var(--f-body);font-size:13px;font-weight:600;fill:var(--concrete);pointer-events:none}
-.node:hover rect,.node.on rect{fill:#1d2c3b}
-.node.dim{opacity:.25}
-.route{fill:none;stroke-width:2;opacity:.22;transition:opacity .25s,stroke-width .25s}
-.route.on{opacity:1;stroke-width:3.4;filter:url(#glow)}
-.route.dim{opacity:.05}
-.detail{margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--c,var(--blueprint));padding:16px 18px}
+.node:hover .pill-bg,.node.on .pill-bg{fill:rgba(24,40,70,.95)}
+.node.on .halo{opacity:.9}
+.node .orbit{transform-box:fill-box;transform-origin:center;animation:spin 6s linear infinite;opacity:.0;transition:opacity .3s}
+.node.on .orbit{opacity:1}
+@keyframes spin{to{transform:rotate(360deg)}}
+.node.dim{opacity:.28}
+.route{fill:none;stroke-width:1.6;opacity:.22;transition:opacity .3s,stroke-width .3s}
+.flow{fill:none;stroke-width:2;stroke-dasharray:3 15;stroke-linecap:round;opacity:.55;animation:flow 1.6s linear infinite;transition:opacity .3s,stroke-width .3s}
+@keyframes flow{to{stroke-dashoffset:-36}}
+.route.on{opacity:.95;stroke-width:3.2;filter:url(#glow)}
+.flow.on{opacity:1;stroke-width:3;animation-duration:.7s}
+.route.dim,.flow.dim{opacity:.05}
+.detail{margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--c,var(--plasma));padding:16px 18px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 -14px 40px -24px var(--c,var(--plasma))}
 @media (max-width:640px){.detail{grid-template-columns:1fr}}
-.detail h2{margin:0;font-family:var(--f-display);font-size:30px;font-weight:800;text-transform:uppercase;line-height:1}
-.detail p{margin:6px 0 0;color:#aeb4ad;line-height:1.5;max-width:62ch}
+.detail h2{margin:0;font-family:var(--f-display);font-size:32px;font-weight:800;text-transform:uppercase;line-height:1}
+.detail p{margin:6px 0 0;color:#b8c2d6;line-height:1.5;max-width:62ch}
 .steps{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;align-items:center}
-.steps span{font-family:var(--f-mono);font-size:12px;padding:4px 8px;border:1px solid var(--line);background:#0f161e}
-.steps i{color:var(--steel);font-style:normal}
-.check{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;color:var(--ok);border:1px solid var(--ok);padding:8px 10px;white-space:nowrap}
-.check.wip{color:var(--hivis);border-color:var(--hivis)}
-.hint{margin-top:10px;font-family:var(--f-mono);font-size:12px;color:var(--steel)}
+.steps span{font-family:var(--f-mono);font-size:12px;padding:4px 8px;border:1px solid var(--line);background:rgba(8,14,28,.7)}
+.steps i{color:var(--plasma);font-style:normal;text-shadow:0 0 8px var(--plasma)}
+.check{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;color:var(--ok);border:1px solid var(--ok);padding:8px 10px;white-space:nowrap;box-shadow:0 0 18px -6px var(--ok)}
+.check.wip{color:var(--hivis);border-color:var(--hivis);box-shadow:0 0 18px -6px var(--hivis)}
+.hint{margin-top:10px;font-family:var(--f-mono);font-size:12px;color:var(--steel);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .links{display:flex;gap:16px;flex-wrap:wrap;margin-top:24px;font-size:14px}
-.links a{color:var(--blueprint)}
+.links a{color:var(--plasma)}
 .tour{font:inherit;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--concrete);background:var(--panel);border:1px solid var(--line);padding:6px 10px;cursor:pointer}
-.tour:hover{border-color:var(--blueprint);color:var(--blueprint)}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.tour:hover{border-color:var(--plasma);color:var(--plasma)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
+<canvas id="space" aria-hidden="true"></canvas>
 <div class="wrap">
   <header>
     <div>
@@ -94,7 +108,7 @@ h1 span{color:var(--hivis)}
     <div>
       <div class="stage" id="stage"></div>
       <section class="detail" id="detail" aria-live="polite"></section>
-      <div class="hint">Click an app to trace its route. Click a tool to see every app that runs through it. <button class="tour" id="tour" type="button">Pause tour</button></div>
+      <div class="hint">Routes fire on their own. Click an app to trace one, or a tool to see every app that runs through it. <button class="tour" id="tour" type="button">Pause tour</button></div>
     </div>
   </div>
 
@@ -109,21 +123,58 @@ h1 span{color:var(--hivis)}
 (function(){
 "use strict";
 const MAP_URL = "https://raw.githubusercontent.com/roshanjohnOBMI/roshanjohnOBMI/main/assets/stack-map.json";
-const FALLBACK = {"stages": ["Authoring", "Code", "Cloud", "Data", "Platform", "Output"], "colours": {"AEC": "#ff8a1f", "Code": "#f2c94c", "Cloud": "#5ec8ff", "Data": "#7fd6a0", "Power Platform": "#c58bff", "Output": "#e8eae4"}, "tools": [{"name": "Revit API", "short": "Revit API", "category": "AEC", "stage": "Authoring", "standalone": null}, {"name": "Navisworks API", "short": "Navisworks", "category": "AEC", "stage": "Authoring", "standalone": null}, {"name": "Dynamo", "short": "Dynamo", "category": "AEC", "stage": "Authoring", "standalone": "Day-to-day Revit automation graphs"}, {"name": "C# / .NET", "short": "C# / .NET", "category": "Code", "stage": "Code", "standalone": null}, {"name": "Python", "short": "Python", "category": "Code", "stage": "Code", "standalone": null}, {"name": "pyRevit", "short": "pyRevit", "category": "Code", "stage": "Code", "standalone": null}, {"name": "JavaScript / Node.js", "short": "Node.js", "category": "Code", "stage": "Code", "standalone": null}, {"name": "TypeScript", "short": "TypeScript", "category": "Code", "stage": "Code", "standalone": null}, {"name": "Autodesk Platform Services", "short": "APS", "category": "Cloud", "stage": "Cloud", "standalone": null}, {"name": "ACC", "short": "ACC", "category": "Cloud", "stage": "Cloud", "standalone": null}, {"name": "Azure", "short": "Azure", "category": "Cloud", "stage": "Cloud", "standalone": null}, {"name": "GraphQL / REST", "short": "GraphQL", "category": "Data", "stage": "Data", "standalone": null}, {"name": "ClosedXML", "short": "ClosedXML", "category": "Data", "stage": "Data", "standalone": null}, {"name": "Power Query", "short": "Power Query", "category": "Data", "stage": "Data", "standalone": null}, {"name": "SharePoint", "short": "SharePoint", "category": "Data", "stage": "Data", "standalone": null}, {"name": "Power Automate", "short": "Automate", "category": "Power Platform", "stage": "Platform", "standalone": null}, {"name": "Power Apps", "short": "Power Apps", "category": "Power Platform", "stage": "Platform", "standalone": null}, {"name": "Power BI", "short": "Power BI", "category": "Power Platform", "stage": "Platform", "standalone": null}], "outputs": ["Dashboards", "Reports", "Model updates", "Web apps"], "apps": [{"name": "OBMI Meridian", "status": "wip", "output": "Dashboards", "tools": ["Revit API", "Navisworks API", "C# / .NET", "JavaScript / Node.js", "Autodesk Platform Services", "Azure"], "what": "Deploys and tracks BIM add-ins office-wide", "route": ["Revit API", "Navisworks API", "C# / .NET", "JavaScript / Node.js", "Autodesk Platform Services", "Azure", "Dashboards"]}, {"name": "ACC Model Health Check", "status": "live", "output": "Dashboards", "tools": ["JavaScript / Node.js", "Autodesk Platform Services", "ACC"], "what": "Health reports for Revit models on ACC", "route": ["JavaScript / Node.js", "Autodesk Platform Services", "ACC", "Dashboards"]}, {"name": "TIDP / MIDP Checker", "status": "live", "output": "Reports", "tools": ["JavaScript / Node.js", "Autodesk Platform Services", "ACC"], "what": "Checks delivery plans against ACC deliverables", "route": ["JavaScript / Node.js", "Autodesk Platform Services", "ACC", "Reports"]}, {"name": "Workset Manager", "status": "live", "output": "Model updates", "tools": ["Revit API", "Python", "pyRevit"], "what": "Bulk workset assignment from Excel rules", "route": ["Revit API", "Python", "pyRevit", "Model updates"]}, {"name": "ClashCommentSync", "status": "live", "output": "Reports", "tools": ["Navisworks API", "C# / .NET", "ClosedXML"], "what": "Round-trips clash comments through Excel", "route": ["Navisworks API", "C# / .NET", "ClosedXML", "Reports"]}, {"name": "Clash Tolerance Updater", "status": "live", "output": "Model updates", "tools": ["Navisworks API", "C# / .NET"], "what": "Bulk tolerance edits through the Clash API", "route": ["Navisworks API", "C# / .NET", "Model updates"]}, {"name": "ACC → Power BI Live Data", "status": "live", "output": "Dashboards", "tools": ["ACC", "Autodesk Platform Services", "GraphQL / REST", "Power Query", "Power BI"], "what": "Live Revit data in Power BI Online", "route": ["ACC", "Autodesk Platform Services", "GraphQL / REST", "Power Query", "Power BI", "Dashboards"]}, {"name": "ACC File Activity Tracker", "status": "live", "output": "Dashboards", "tools": ["ACC", "SharePoint", "Power Automate", "Power Apps"], "what": "Logs ACC file activity to SharePoint", "route": ["ACC", "SharePoint", "Power Automate", "Power Apps", "Dashboards"]}, {"name": "OBMI Move30", "status": "wip", "output": "Web apps", "tools": ["JavaScript / Node.js", "Azure"], "what": "30x30 Wellness Challenge web app", "route": ["JavaScript / Node.js", "Azure", "Web apps"]}, {"name": "obmiAppCosting", "status": "live", "output": "Web apps", "tools": ["TypeScript"], "what": "Costing app for OBMI applications", "route": ["TypeScript", "Web apps"]}, {"name": "Roshan's Build Site", "status": "live", "output": "Web apps", "tools": ["JavaScript / Node.js"], "what": "This profile as a playable 3D site", "route": ["JavaScript / Node.js", "Web apps"]}]};
-const APP_COLOURS = ["#5ec8ff","#ff8a1f","#7fd6a0","#c58bff","#f2c94c","#ff6b8a","#4fe3c1","#9fb4ff","#ffb066","#e48cff","#b8e986","#6fd3ff"];
+const FALLBACK = {"stages": ["Authoring", "Code", "Cloud", "Data", "Platform", "Output"], "colours": {"AEC": "#ff8a1f", "Code": "#f2c94c", "Cloud": "#5ec8ff", "Data": "#7fd6a0", "Power Platform": "#c58bff", "Output": "#e8eae4"}, "tools": [{"name": "Revit API", "short": "Revit API", "category": "AEC", "stage": "Authoring", "standalone": null}, {"name": "Navisworks API", "short": "Navisworks", "category": "AEC", "stage": "Authoring", "standalone": null}, {"name": "C# / .NET", "short": "C# / .NET", "category": "Code", "stage": "Code", "standalone": null}, {"name": "JavaScript / Node.js", "short": "Node.js", "category": "Code", "stage": "Code", "standalone": null}, {"name": "TypeScript", "short": "TypeScript", "category": "Code", "stage": "Code", "standalone": null}, {"name": "Autodesk Platform Services", "short": "APS", "category": "Cloud", "stage": "Cloud", "standalone": null}, {"name": "ACC", "short": "ACC", "category": "Cloud", "stage": "Cloud", "standalone": null}, {"name": "Azure", "short": "Azure", "category": "Cloud", "stage": "Cloud", "standalone": null}, {"name": "GraphQL / REST", "short": "GraphQL", "category": "Data", "stage": "Data", "standalone": null}, {"name": "ClosedXML", "short": "ClosedXML", "category": "Data", "stage": "Data", "standalone": null}, {"name": "Power Query", "short": "Power Query", "category": "Data", "stage": "Data", "standalone": null}, {"name": "SharePoint", "short": "SharePoint", "category": "Data", "stage": "Data", "standalone": null}, {"name": "Power Automate", "short": "Automate", "category": "Power Platform", "stage": "Platform", "standalone": null}, {"name": "Power Apps", "short": "Power Apps", "category": "Power Platform", "stage": "Platform", "standalone": null}, {"name": "Power BI", "short": "Power BI", "category": "Power Platform", "stage": "Platform", "standalone": null}], "outputs": ["Dashboards", "Reports", "Model updates", "Web apps"], "apps": [{"name": "OBMI Meridian", "status": "wip", "output": "Dashboards", "tools": ["Revit API", "Navisworks API", "C# / .NET", "JavaScript / Node.js", "Autodesk Platform Services", "Azure"], "what": "Deploys and tracks BIM add-ins office-wide", "route": ["Revit API", "Navisworks API", "C# / .NET", "JavaScript / Node.js", "Autodesk Platform Services", "Azure", "Dashboards"]}, {"name": "ACC Model Health Check", "status": "live", "output": "Dashboards", "tools": ["JavaScript / Node.js", "Autodesk Platform Services", "ACC"], "what": "Health reports for Revit models on ACC", "route": ["JavaScript / Node.js", "Autodesk Platform Services", "ACC", "Dashboards"]}, {"name": "TIDP / MIDP Checker", "status": "live", "output": "Reports", "tools": ["JavaScript / Node.js", "Autodesk Platform Services", "ACC"], "what": "Checks delivery plans against ACC deliverables", "route": ["JavaScript / Node.js", "Autodesk Platform Services", "ACC", "Reports"]}, {"name": "Workset Manager", "status": "live", "output": "Model updates", "tools": ["Revit API", "C# / .NET"], "what": "Bulk workset assignment from Excel rules", "route": ["Revit API", "C# / .NET", "Model updates"]}, {"name": "ClashCommentSync", "status": "live", "output": "Reports", "tools": ["Navisworks API", "C# / .NET", "ClosedXML"], "what": "Round-trips clash comments through Excel", "route": ["Navisworks API", "C# / .NET", "ClosedXML", "Reports"]}, {"name": "Clash Tolerance Updater", "status": "live", "output": "Model updates", "tools": ["Navisworks API", "C# / .NET"], "what": "Bulk tolerance edits through the Clash API", "route": ["Navisworks API", "C# / .NET", "Model updates"]}, {"name": "ACC → Power BI Live Data", "status": "live", "output": "Dashboards", "tools": ["ACC", "Autodesk Platform Services", "GraphQL / REST", "Power Query", "Power BI"], "what": "Live Revit data in Power BI Online", "route": ["ACC", "Autodesk Platform Services", "GraphQL / REST", "Power Query", "Power BI", "Dashboards"]}, {"name": "ACC File Activity Tracker", "status": "live", "output": "Dashboards", "tools": ["ACC", "SharePoint", "Power Automate", "Power Apps"], "what": "Logs ACC file activity to SharePoint", "route": ["ACC", "SharePoint", "Power Automate", "Power Apps", "Dashboards"]}, {"name": "OBMI Move30", "status": "wip", "output": "Web apps", "tools": ["JavaScript / Node.js", "Azure"], "what": "30x30 Wellness Challenge web app", "route": ["JavaScript / Node.js", "Azure", "Web apps"]}, {"name": "obmiAppCosting", "status": "live", "output": "Web apps", "tools": ["TypeScript"], "what": "Costing app for OBMI applications", "route": ["TypeScript", "Web apps"]}, {"name": "Roshan's Build Site", "status": "live", "output": "Web apps", "tools": ["JavaScript / Node.js"], "what": "This profile as a playable 3D site", "route": ["JavaScript / Node.js", "Web apps"]}]};
+const APP_COLOURS = ["#6fd3ff","#ff8a1f","#7fd6a0","#b38bff","#f2c94c","#ff6b9a","#4fe3c1","#9fb4ff","#ffb066","#e48cff","#b8e986","#6fd3ff"];
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const $ = id => document.getElementById(id);
 const NS = "http://www.w3.org/2000/svg";
 const el = (tag, attrs={}, parent) => { const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(parent) parent.appendChild(e); return e; };
+const rnd=(a,b)=>a+Math.random()*(b-a);
 
+/* ================= deep space backdrop ================= */
+const space={cv:$("space"),stars:[],neb:null,meteors:[],glow:0,glowX:.5,glowY:.3,w:0,h:0,dpr:1};
+function spaceResize(){
+  const dpr=space.dpr=Math.min(2,devicePixelRatio||1), w=space.w=innerWidth, h=space.h=innerHeight;
+  space.cv.width=w*dpr; space.cv.height=h*dpr;
+  const n=Math.round(w*h/2600);
+  space.stars=Array.from({length:n},()=>({x:Math.random()*w,y:Math.random()*h,z:Math.random(),r:Math.random()<.04?rnd(1.2,1.9):rnd(.3,1.1),tw:rnd(0,6.3),c:Math.random()<.15?"#ffd9b0":(Math.random()<.3?"#b9d6ff":"#ffffff")}));
+  // nebula painted once to an offscreen canvas
+  const nb=document.createElement("canvas"); nb.width=w*dpr; nb.height=h*dpr; const g=nb.getContext("2d"); g.scale(dpr,dpr);
+  const blobs=[[.18,.22,.55,"rgba(123,92,255,.22)"],[.82,.18,.45,"rgba(0,150,255,.18)"],[.65,.78,.6,"rgba(255,95,162,.11)"],[.3,.85,.5,"rgba(0,200,220,.12)"],[.5,.45,.7,"rgba(60,80,200,.10)"]];
+  blobs.forEach(([x,y,r,c])=>{ const R=r*Math.max(w,h); const rg=g.createRadialGradient(x*w,y*h,0,x*w,y*h,R); rg.addColorStop(0,c); rg.addColorStop(1,"rgba(0,0,0,0)"); g.fillStyle=rg; g.fillRect(0,0,w,h); });
+  for(let i=0;i<900;i++){ g.fillStyle=`rgba(${150+Math.random()*80|0},${150+Math.random()*80|0},255,${Math.random()*.035})`; g.beginPath(); g.arc(Math.random()*w,Math.random()*h,rnd(8,46),0,7); g.fill(); }
+  space.neb=nb;
+}
+function spaceFlash(x,y,amt){ space.glow=Math.max(space.glow,amt); space.glowX=x; space.glowY=y; }
+function drawSpace(now,dt){
+  const g=space.cv.getContext("2d"), {w,h,dpr}=space; g.setTransform(dpr,0,0,dpr,0,0);
+  g.fillStyle="#03050c"; g.fillRect(0,0,w,h);
+  const drift=now*.000006;
+  g.globalAlpha=.95; g.drawImage(space.neb,Math.sin(drift*40)*18-18,Math.cos(drift*30)*12-12,w+36,h+24); g.globalAlpha=1;
+  // storm light inside the nebula
+  if(space.glow>.01){ const rg=g.createRadialGradient(space.glowX*w,space.glowY*h,0,space.glowX*w,space.glowY*h,Math.max(w,h)*.6); rg.addColorStop(0,`rgba(160,215,255,${space.glow*.5})`); rg.addColorStop(.4,`rgba(110,120,255,${space.glow*.18})`); rg.addColorStop(1,"rgba(0,0,0,0)"); g.fillStyle=rg; g.fillRect(0,0,w,h); space.glow*=Math.pow(.02,dt); }
+  space.stars.forEach(s=>{ s.x-= (s.z*.012+.002)*dt*60*.3; if(s.x<0) s.x+=w;
+    const a=.35+.65*Math.abs(Math.sin(s.tw+now*.0012*(.5+s.z))); g.globalAlpha=a*(.4+.6*s.z); g.fillStyle=s.c; g.beginPath(); g.arc(s.x,s.y,s.r,0,7); g.fill();
+    if(s.r>1.2){ g.globalAlpha=a*.25; g.fillRect(s.x-4,s.y-.3,8,.6); g.fillRect(s.x-.3,s.y-4,.6,8); } });
+  g.globalAlpha=1;
+  if(!reduce && Math.random()<dt*.35) space.meteors.push({x:rnd(.2,1.1)*w,y:rnd(-.05,.35)*h,vx:-rnd(500,900),vy:rnd(180,380),life:1});
+  space.meteors=space.meteors.filter(m=>m.life>0);
+  space.meteors.forEach(m=>{ const x2=m.x-m.vx*.07, y2=m.y-m.vy*.07; const lg=g.createLinearGradient(m.x,m.y,x2,y2); lg.addColorStop(0,`rgba(220,240,255,${m.life})`); lg.addColorStop(1,"rgba(120,180,255,0)"); g.strokeStyle=lg; g.lineWidth=1.6; g.beginPath(); g.moveTo(m.x,m.y); g.lineTo(x2,y2); g.stroke(); m.x+=m.vx*dt; m.y+=m.vy*dt; m.life-=dt*1.1; });
+}
+
+/* ================= stack map + diagram ================= */
 let map, selApp=null, selTool=null, touring=!reduce, tourIdx=0, tourTimer=0;
-const nodePos = {}, nodeEls = {}, routeEls = [], particles = [];
+const nodePos = {}, nodeEls = {}, routeEls = [], flowEls = [], particles = [];
 
 function validate(m){
   const errs=[]; const tools=new Set(m.tools.map(t=>t.name)); const used=new Set();
   m.apps.forEach(a=>{ a.tools.forEach(t=>{ if(!tools.has(t)) errs.push(`${a.name}: unknown tool ${t}`); used.add(t); }); if(!m.outputs.includes(a.output)) errs.push(`${a.name}: unknown output`); });
   m.tools.forEach(t=>{ if(!used.has(t.name) && !t.standalone) errs.push(`orphan tool ${t.name}`); });
   return errs;
+}
+function ends(p,q,lane){
+  if(Math.abs(p.x-q.x)<10){ const dn=q.y>p.y?1:-1; return [p.x,p.y+dn*17,q.x,q.y-dn*17]; }
+  return [p.x+p.w/2,p.y+(lane||0),q.x-q.w/2,q.y+(lane||0)];
 }
 
 function build(m, source){
@@ -132,165 +183,149 @@ function build(m, source){
   const errs = validate(m);
   const live = m.apps.filter(a=>a.status!=="wip").length;
   $("status").innerHTML =
-    `<span class="pill ${errs.length?'warn':''}">${errs.length?'<b>✗</b> '+errs.length+' issues':'<b>✓</b> '+m.apps.length+' routes validated'}</span>`+
+    `<span class="pill">${errs.length?'<b style="color:#ff8a1f">✗</b> '+errs.length+' issues':'<b>✓</b> '+m.apps.length+' routes validated'}</span>`+
     `<span class="pill">${m.tools.length} tools · ${live} live · ${m.apps.length-live} in progress</span>`+
-    `<span class="pill">${source}</span>`;
+    `<span class="pill live">${source}</span>`;
 
-  // ---- app list ----
   const list = $("apps"); list.innerHTML="";
   m.apps.forEach((a,i)=>{
     const b=document.createElement("button"); b.className="app"; b.type="button"; b.style.setProperty("--c",a.colour);
-    b.setAttribute("aria-pressed","false"); b.setAttribute("role","listitem"); b.dataset.i=i;
-    b.innerHTML=`<span class="dot"></span><span class="nm"></span><span class="ct">${a.tools.length} tools</span>`;
+    b.setAttribute("aria-pressed","false"); b.setAttribute("role","listitem");
+    b.innerHTML=`<span class="dot"></span><span class="nm"></span><span class="ct">${a.tools.length} tool${a.tools.length>1?'s':''}</span>`;
     b.querySelector(".nm").textContent=a.name;
     b.addEventListener("click",()=>{ stopTour(); selectApp(i===selApp?null:i); });
     list.appendChild(b); a.btn=b;
   });
 
-  // ---- diagram ----
-  const W=1100, colW=W/m.stages.length, top=56;
+  const W=1100, colW=W/m.stages.length, top=60;
   const byStage = {}; m.stages.forEach(s=>byStage[s]=[]);
   m.tools.forEach(t=>byStage[t.stage].push({name:t.name,short:t.short,cat:t.category,standalone:t.standalone}));
   m.outputs.forEach(o=>byStage["Output"].push({name:o,short:o,cat:"Output"}));
   const rows = Math.max(...Object.values(byStage).map(v=>v.length));
-  const rowH = 64, H = top + rows*rowH + 30;
+  const rowH = 66, H = top + rows*rowH + 34;
   const stage=$("stage"); stage.innerHTML="";
   const zapWrap=document.createElement("div"); zapWrap.className="zap"; stage.appendChild(zapWrap);
   const svg = el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Routing diagram of apps through tools"},zapWrap);
-  const cv=document.createElement("canvas"); zapWrap.appendChild(cv); zap.cv=cv; zap.wrap=zapWrap; zap.W=W;
+  const cv=document.createElement("canvas"); zapWrap.appendChild(cv); zap.cv=cv; zap.wrap=zapWrap; zap.W=W; zap.H=H;
   const fl=document.createElement("div"); fl.className="flash"; zapWrap.appendChild(fl); zap.flash=fl;
   const defs = el("defs",{},svg);
   const f = el("filter",{id:"glow",x:"-20%",y:"-20%",width:"140%",height:"140%"},defs);
-  el("feGaussianBlur",{stdDeviation:"3",result:"b"},f);
+  el("feGaussianBlur",{stdDeviation:"3.2",result:"b"},f);
   const fm = el("feMerge",{},f); el("feMergeNode",{in:"b"},fm); el("feMergeNode",{in:"SourceGraphic"},fm);
+  const lg=el("linearGradient",{id:"laneGrad",x1:"0",y1:"0",x2:"0",y2:"1"},defs);
+  el("stop",{offset:"0","stop-color":"#6fd3ff","stop-opacity":".07"},lg); el("stop",{offset:"1","stop-color":"#6fd3ff","stop-opacity":"0"},lg);
   m.stages.forEach((s,i)=>{
-    el("rect",{x:i*colW,y:0,width:colW,height:H,fill:i%2?"#101820":"#131c25"},svg);
+    if(i%2===0) el("rect",{x:i*colW,y:0,width:colW,height:H,class:"lane"},svg);
+    el("line",{x1:i*colW,y1:44,x2:i*colW,y2:H-12,stroke:"rgba(140,180,255,.08)","stroke-dasharray":"2 6"},svg);
     const t=el("text",{x:i*colW+colW/2,y:30,"text-anchor":"middle",class:"colhead"},svg); t.textContent=`${String(i+1).padStart(2,"0")} · ${s.toUpperCase()}`;
   });
-  const gRoutes = el("g",{},svg), gParts = el("g",{},svg), gNodes = el("g",{},svg);
+  const gRoutes = el("g",{},svg), gFlow = el("g",{},svg), gParts = el("g",{},svg), gNodes = el("g",{},svg);
   m.stages.forEach((s,i)=>{
     const items=byStage[s]; const off=(rows-items.length)*rowH/2;
     items.forEach((n,j)=>{
       const cx=i*colW+colW/2, cy=top+off+j*rowH+rowH/2;
-      const w=Math.max(84, n.short.length*8.2+28);
+      const w=Math.max(86, n.short.length*8.2+30);
       nodePos[n.name]={x:cx,y:cy,w};
-      const g=el("g",{class:"node",tabindex:"0",role:"button","aria-label":n.name},gNodes);
       const col=m.colours[n.cat]||"#e8eae4";
-      el("rect",{x:cx-w/2,y:cy-17,width:w,height:34,rx:17,stroke:col,"stroke-dasharray":n.standalone?"4 4":""},g);
-      el("circle",{cx:cx-w/2+15,cy:cy,r:4,fill:col},g);
-      const tx=el("text",{x:cx+6,y:cy+4.5,"text-anchor":"middle"},g); tx.textContent=n.short;
-      const tt=el("title",{},g); tt.textContent=n.standalone?`${n.name} — ${n.standalone}`:n.name;
+      const g=el("g",{class:"node",tabindex:"0",role:"button","aria-label":n.name},gNodes);
+      el("rect",{class:"halo",x:cx-w/2-6,y:cy-23,width:w+12,height:46,rx:23,fill:col,opacity:"0",filter:"url(#glow)","fill-opacity":".22"},g);
+      el("rect",{class:"pill-bg",x:cx-w/2,y:cy-17,width:w,height:34,rx:17,stroke:col},g);
+      const orb=el("g",{class:"orbit"},g);
+      el("ellipse",{cx:cx-w/2+15,cy:cy,rx:9,ry:9,fill:"none",stroke:col,"stroke-opacity":".5","stroke-dasharray":"2 3"},orb);
+      el("circle",{cx:cx-w/2+15,cy:cy-9,r:1.8,fill:"#fff"},orb);
+      el("circle",{cx:cx-w/2+15,cy:cy,r:4,fill:col,filter:"url(#glow)"},g);
+      const tx=el("text",{x:cx+7,y:cy+4.5,"text-anchor":"middle"},g); tx.textContent=n.short;
+      const tt=el("title",{},g); tt.textContent=n.name;
       g.addEventListener("click",()=>{ stopTour(); selectTool(selTool===n.name?null:n.name); });
       g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); g.dispatchEvent(new Event("click")); }});
       nodeEls[n.name]=g;
     });
   });
-  // routes: smooth curves between consecutive stops, offset per app so parallel routes separate
   m.apps.forEach((a,i)=>{
     const lane=(i-(m.apps.length-1)/2)*2.2;
     const stops=a.route.map(n=>nodePos[n]).filter(Boolean);
     let d="";
+    const segs=[];
     for(let k=0;k<stops.length-1;k++){
       const p=stops[k], q=stops[k+1];
       const [x1,y1,x2,y2]=ends(p,q,lane);
-      const vert=Math.abs(p.x-q.x)<10, mx=(x1+x2)/2, my=(y1+y2)/2;
-      d += ` M${x1} ${y1}`+(vert?` C${x1+30} ${y1} ${x2+30} ${y2} ${x2} ${y2}`:` C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`);
-      // through the node itself
-      if(k<stops.length-2) d += ` M${x2} ${y2} L${q.x+q.w/2} ${y2}`;
+      const vert=Math.abs(p.x-q.x)<10, mx=(x1+x2)/2;
+      const c = vert?` C${x1+34} ${y1} ${x2+34} ${y2} ${x2} ${y2}`:` C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;
+      d += ` M${x1} ${y1}`+c;
+      segs.push(el("path",{d:`M${x1} ${y1}`+c,fill:"none",stroke:"none"},gRoutes));
     }
-    const pth=el("path",{d,class:"route",stroke:a.colour},gRoutes);
-    routeEls.push(pth);
-    // particles follow each segment as one continuous run
-    const segs=[]; for(let k=0;k<stops.length-1;k++){ const p=stops[k], q=stops[k+1]; const s=el("path",{d:`M${p.x} ${p.y+lane} L${p.x+p.w/2} ${p.y+lane} C${((p.x+p.w/2)+(q.x-q.w/2))/2} ${p.y+lane} ${((p.x+p.w/2)+(q.x-q.w/2))/2} ${q.y+lane} ${q.x-q.w/2} ${q.y+lane} L${q.x} ${q.y+lane}`,fill:"none",stroke:"none"},gRoutes); segs.push(s); }
+    routeEls.push(el("path",{d,class:"route",stroke:a.colour},gRoutes));
+    flowEls.push(el("path",{d,class:"flow",stroke:a.colour,style:`animation-delay:${-i*.37}s`},gFlow));
     const lens=segs.map(s=>s.getTotalLength()); const total=lens.reduce((x,y)=>x+y,0)||1;
     for(let k=0;k<2;k++){
-      const c=el("circle",{r:3.2,fill:"#fff",opacity:.0},gParts);
-      const h=el("circle",{r:8,fill:a.colour,opacity:.0,filter:"url(#glow)"},gParts);
-      particles.push({app:i,segs,lens,total,c,h,t:(k*.5+i*.13)%1});
+      const trail=[]; for(let t=0;t<6;t++) trail.push(el("circle",{r:Math.max(.6,3-t*.45),fill:a.colour,opacity:0},gParts));
+      const c=el("circle",{r:3,fill:"#fff",opacity:0},gParts);
+      particles.push({app:i,segs,lens,total,c,trail,hist:[],t:(k*.5+i*.13)%1});
     }
   });
   selectApp(null);
   if(touring) startTour();
 }
 
-function ends(p,q,lane){
-  if(Math.abs(p.x-q.x)<10){ const dn=q.y>p.y?1:-1; return [p.x,p.y+dn*17,q.x,q.y-dn*17]; }
-  return [p.x+p.w/2,p.y+(lane||0),q.x-q.w/2,q.y+(lane||0)];
-}
+function activeSet(){ return selApp!==null ? new Set([selApp]) : selTool ? new Set(map.apps.map((a,i)=>a.route.includes(selTool)?i:-1).filter(i=>i>=0)) : null; }
 function setDim(){
-  const apps=map.apps;
-  const activeApps = selApp!==null ? new Set([selApp]) : selTool ? new Set(apps.map((a,i)=>a.route.includes(selTool)?i:-1).filter(i=>i>=0)) : null;
-  routeEls.forEach((r,i)=>{ r.classList.toggle("on",!!activeApps&&activeApps.has(i)); r.classList.toggle("dim",!!activeApps&&!activeApps.has(i)); });
-  apps.forEach((a,i)=>{ a.btn.setAttribute("aria-pressed",String(selApp===i)); a.btn.classList.toggle("dim",!!activeApps&&!activeApps.has(i)); });
-  const onNodes = new Set(); if(activeApps) activeApps.forEach(i=>apps[i].route.forEach(n=>onNodes.add(n)));
-  Object.entries(nodeEls).forEach(([n,g])=>{ g.classList.toggle("on",onNodes.has(n)||n===selTool); g.classList.toggle("dim",!!activeApps&&!onNodes.has(n)&&n!==selTool); });
-  return activeApps;
+  const apps=map.apps, act=activeSet();
+  routeEls.forEach((r,i)=>{ const on=!!act&&act.has(i), dim=!!act&&!on; r.classList.toggle("on",on); r.classList.toggle("dim",dim); flowEls[i].classList.toggle("on",on); flowEls[i].classList.toggle("dim",dim); });
+  apps.forEach((a,i)=>{ a.btn.setAttribute("aria-pressed",String(selApp===i)); a.btn.classList.toggle("dim",!!act&&!act.has(i)); });
+  const onNodes=new Set(); if(act) act.forEach(i=>apps[i].route.forEach(n=>onNodes.add(n)));
+  Object.entries(nodeEls).forEach(([n,g])=>{ g.classList.toggle("on",onNodes.has(n)||n===selTool); g.classList.toggle("dim",!!act&&!onNodes.has(n)&&n!==selTool); });
 }
-
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function selectApp(i){
   selApp=i; selTool=null; setDim(); zap.next=0;
   const d=$("detail");
   if(i===null){
-    d.style.setProperty("--c","var(--blueprint)");
-    d.innerHTML=`<div><div class="eyebrow">Stack map</div><h2>${map.apps.length} apps · ${map.tools.length} tools</h2><p>Every route below is checked nightly: no tool without an app, no app without a route, and the list matches the Work table on the GitHub profile.</p></div><div class="check">✓ ALL ROUTES VALID</div>`;
+    d.style.setProperty("--c","var(--plasma)");
+    d.innerHTML=`<div><div class="eyebrow">Stack map</div><h2>${map.apps.length} apps · ${map.tools.length} tools</h2><p>Every route is checked nightly: no tool without an app, no app without a route, and the list matches the Work table on the GitHub profile.</p></div><div class="check">✓ ALL ROUTES VALID</div>`;
     return;
   }
   const a=map.apps[i]; d.style.setProperty("--c",a.colour);
-  const steps=a.route.map((n,k)=>`${k?'<i>→</i>':''}<span>${esc(n)}</span>`).join("");
+  const steps=a.route.map((n,k)=>`${k?'<i>⚡</i>':''}<span>${esc(n)}</span>`).join("");
   d.innerHTML=`<div><div class="eyebrow">Route ${String(i+1).padStart(2,"0")} of ${map.apps.length}</div><h2>${esc(a.name)}</h2><p>${esc(a.what)}</p><div class="steps">${steps}</div></div><div class="check ${a.status==='wip'?'wip':''}">${a.status==='wip'?'◐ IN PROGRESS':'✓ ROUTE VALIDATED'}</div>`;
 }
 function selectTool(n){
-  selTool=n; selApp=null; const active=setDim(); zap.next=0;
-  const d=$("detail");
+  selTool=n; selApp=null; setDim(); zap.next=0;
   if(!n){ selectApp(null); return; }
-  const t=map.tools.find(x=>x.name===n);
-  const users=map.apps.filter(a=>a.route.includes(n));
+  const d=$("detail"), t=map.tools.find(x=>x.name===n), users=map.apps.filter(a=>a.route.includes(n));
   d.style.setProperty("--c",(t&&map.colours[t.category])||"#e8eae4");
-  d.innerHTML=`<div><div class="eyebrow">${t?(t.category===t.stage?esc(t.stage):esc(t.category)+' · '+esc(t.stage)):'Output'}</div><h2>${esc(n)}</h2><p>${users.length?`Used by ${users.length} app${users.length>1?'s':''}:`:(t&&t.standalone?esc(t.standalone)+'. Not part of a published app route.':'No apps yet.')}</p><div class="steps">${users.map(a=>`<span style="border-color:${a.colour}">${esc(a.name)}</span>`).join("")}</div></div><div class="check">${users.length?'✓ CONNECTED':'○ STANDALONE'}</div>`;
+  d.innerHTML=`<div><div class="eyebrow">${t?(t.category===t.stage?esc(t.stage):esc(t.category)+' · '+esc(t.stage)):'Output'}</div><h2>${esc(n)}</h2><p>${users.length?`Used by ${users.length} app${users.length>1?'s':''}:`:'No apps yet.'}</p><div class="steps">${users.map(a=>`<span style="border-color:${a.colour}">${esc(a.name)}</span>`).join("")}</div></div><div class="check">${users.length?'✓ CONNECTED':'○ STANDALONE'}</div>`;
 }
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-
-function startTour(){ clearInterval(tourTimer); touring=true; $("tour").textContent="Pause tour"; selectApp(tourIdx%map.apps.length); tourTimer=setInterval(()=>{ tourIdx=(tourIdx+1)%map.apps.length; selectApp(tourIdx); },3600); }
+function startTour(){ clearInterval(tourTimer); touring=true; $("tour").textContent="Pause tour"; selectApp(tourIdx%map.apps.length); tourTimer=setInterval(()=>{ tourIdx=(tourIdx+1)%map.apps.length; selectApp(tourIdx); },3800); }
 function stopTour(){ clearInterval(tourTimer); touring=false; $("tour").textContent="Start tour"; }
 $("tour").addEventListener("click",()=>touring?stopTour():startTour());
-
 $("q").addEventListener("input",e=>{
   const q=e.target.value.trim().toLowerCase(); stopTour();
-  map.apps.forEach(a=>{ const hit=!q||a.name.toLowerCase().includes(q)||a.route.some(n=>n.toLowerCase().includes(q)); a.btn.hidden=!hit; });
+  map.apps.forEach(a=>{ a.btn.hidden=!(!q||a.name.toLowerCase().includes(q)||a.route.some(n=>n.toLowerCase().includes(q))); });
   const tool=map.tools.find(t=>q&&(t.name.toLowerCase()===q||t.short.toLowerCase()===q));
   if(tool) selectTool(tool.name);
 });
 
-/* ---------- lightning: branching bolts along the selected route ---------- */
-const zap={cv:null,wrap:null,W:1100,flash:null,bolts:[],next:0};
+/* ================= lightning ================= */
+const zap={cv:null,wrap:null,W:1100,H:600,flash:null,bolts:[],next:0,ambient:0,crackle:0};
 function boltPath(x1,y1,x2,y2,disp,depth,segs,branches){
   if(disp<3){ segs.push([x1,y1,x2,y2]); return; }
   const mx=(x1+x2)/2+(Math.random()-.5)*disp, my=(y1+y2)/2+(Math.random()-.5)*disp;
-  boltPath(x1,y1,mx,my,disp/2,depth,segs,branches);
-  boltPath(mx,my,x2,y2,disp/2,depth,segs,branches);
+  boltPath(x1,y1,mx,my,disp/2,depth,segs,branches); boltPath(mx,my,x2,y2,disp/2,depth,segs,branches);
   if(depth<3 && Math.random()<.42 && disp>7){
     const a=Math.atan2(my-y1,mx-x1)+(Math.random()<.5?-1:1)*(.35+Math.random()*.6), len=Math.hypot(mx-x1,my-y1)*(.5+Math.random()*.6);
     const b=[]; boltPath(mx,my,mx+Math.cos(a)*len,my+Math.sin(a)*len,disp/2,depth+1,b,branches); branches.push({segs:b,depth:depth+1});
   }
 }
-function strike(x1,y1,x2,y2,colour,delay){
-  const born=performance.now()+delay;
-  zap.bolts.push({x1,y1,x2,y2,colour,born,life:620,gen:0,segs:null,branches:null});
-}
-function routeStrike(i,base){
+function strike(x1,y1,x2,y2,colour,delay,power){ zap.bolts.push({x1,y1,x2,y2,colour,born:performance.now()+delay,life:power<1?460:640,power:power||1,gen:-1}); }
+function routeStrike(i,base,power){
   const a=map.apps[i], stops=a.route.map(n=>nodePos[n]).filter(Boolean);
-  for(let k=0;k<stops.length-1;k++){
-    const p=stops[k], q=stops[k+1];
-    const [x1,y1,x2,y2]=ends(p,q,0);
-    strike(x1,y1,x2,y2,a.colour,base+120+k*150);
+  for(let k=0;k<stops.length-1;k++){ const [x1,y1,x2,y2]=ends(stops[k],stops[k+1],0); strike(x1,y1,x2,y2,a.colour,base+120+k*150,power); }
+  if(stops[0] && power>=1){
+    strike(stops[0].x+rnd(-80,80),-12,stops[0].x,stops[0].y-17,"#a8dcff",base,1.2);
+    const fx=stops[0].x/zap.W;
+    setTimeout(()=>{ if(zap.flash){ zap.flash.style.setProperty("--fx",fx*100+"%"); zap.flash.animate && zap.flash.animate([{opacity:0},{opacity:1},{opacity:.2},{opacity:.85},{opacity:0}],{duration:560}); }
+      const r=zap.wrap.getBoundingClientRect(); spaceFlash((r.left+fx*r.width)/innerWidth, Math.max(0,r.top)/innerHeight, .9); },base);
   }
-  if(stops[0]) strike(stops[0].x+(Math.random()-.5)*120,-10,stops[0].x,stops[0].y-17,"#9fdcff",base);   // sky strike onto the first tool
-  if(zap.flash && stops[0]){ const fx=stops[0].x/zap.W*100; setTimeout(()=>{ zap.flash.style.setProperty("--fx",fx+"%"); zap.flash.animate && zap.flash.animate([{opacity:0},{opacity:1},{opacity:.2},{opacity:.8},{opacity:0}],{duration:520}); },base); }
-}
-function fireSelection(){
-  if(!map) return;
-  if(selApp!==null) routeStrike(selApp,0);
-  else if(selTool){ map.apps.forEach((a,i)=>{ if(a.route.includes(selTool)) routeStrike(i,Math.random()*300); }); }
 }
 function drawZap(now){
   const cv=zap.cv; if(!cv) return;
@@ -302,37 +337,49 @@ function drawZap(now){
   zap.bolts=zap.bolts.filter(b=>now<b.born+b.life);
   zap.bolts.forEach(b=>{
     const age=now-b.born; if(age<0) return;
-    const gen=Math.floor(age/70);                 // re-roll the shape a few times: flicker
-    if(!b.segs||(gen!==b.gen&&age<300)){ b.gen=gen; b.segs=[]; b.branches=[]; boltPath(b.x1,b.y1,b.x2,b.y2,Math.max(34,Math.hypot(b.x2-b.x1,b.y2-b.y1)*.32),0,b.segs,b.branches); }
-    const life=age<300?(.75+.25*Math.random()):Math.max(0,1-(age-300)/(b.life-300));
+    const gen=Math.floor(age/65);
+    if(gen!==b.gen && age<300){ b.gen=gen; b.segs=[]; b.branches=[]; boltPath(b.x1,b.y1,b.x2,b.y2,Math.max(34,Math.hypot(b.x2-b.x1,b.y2-b.y1)*.32),0,b.segs,b.branches); }
+    if(!b.segs) return;
+    const life=(age<300?(.75+.25*Math.random()):Math.max(0,1-(age-300)/(b.life-300)))*Math.min(1,b.power);
     const draw=(segs,w,alpha,col,blur)=>{ g.beginPath(); segs.forEach(s=>{ g.moveTo(s[0],s[1]); g.lineTo(s[2],s[3]); }); g.strokeStyle=col; g.globalAlpha=alpha*life; g.lineWidth=w; g.shadowColor=b.colour; g.shadowBlur=blur; g.stroke(); };
-    draw(b.segs,16,.16,b.colour,40);             // outer glow
-    draw(b.segs,5,.5,b.colour,18);            // charged sheath
-    draw(b.segs,1.3,1,"#ffffff",6);              // white-hot core
-    b.branches.forEach(br=>{ draw(br.segs,br.depth>1?.9:2,.75,b.colour,12); draw(br.segs,.6,.8,"#e8f6ff",3); });
+    draw(b.segs,18*b.power,.14,b.colour,44);
+    draw(b.segs,5*b.power,.5,b.colour,18);
+    draw(b.segs,1.4,1,"#ffffff",6);
+    b.branches.forEach(br=>{ draw(br.segs,br.depth>1?.9:2,.75,b.colour,12); draw(br.segs,.6,.8,"#eaf7ff",3); });
   });
   g.globalAlpha=1; g.shadowBlur=0;
 }
 
+/* ================= main loop ================= */
 let last=performance.now();
 function tick(now){
   const dt=Math.min(.05,(now-last)/1000); last=now;
+  drawSpace(now,dt);
   if(map){
-    const active = selApp!==null ? new Set([selApp]) : selTool ? new Set(map.apps.map((a,i)=>a.route.includes(selTool)?i:-1).filter(i=>i>=0)) : null;
+    const act=activeSet();
+    // automatic storm: the selected route fires on a beat, and other routes crackle on their own
+    if(!reduce && act && now>zap.next){ act.forEach(i=>routeStrike(i,Math.random()*200,1)); zap.next=now+1700; }
+    if(!reduce && now>zap.ambient){ const i=Math.floor(Math.random()*map.apps.length); if(!act||!act.has(i)) routeStrike(i,0,.55); zap.ambient=now+rnd(650,1300); }
+    if(!reduce && now>zap.crackle){ // short arcs between neighbouring stops on a random route
+      const a=map.apps[Math.floor(Math.random()*map.apps.length)], s=a.route.map(n=>nodePos[n]).filter(Boolean);
+      if(s.length>1){ const k=Math.floor(Math.random()*(s.length-1)); const [x1,y1,x2,y2]=ends(s[k],s[k+1],0); strike(x1,y1,x2,y2,a.colour,0,.4); }
+      zap.crackle=now+rnd(260,600);
+    }
     particles.forEach(p=>{
-      const on=!active||active.has(p.app);
-      p.t=(p.t+dt*(on&&active?.32:.12))%1;
+      const on=!act||act.has(p.app);
+      p.t=(p.t+dt*(on&&act?.34:.13))%1;
       let dist=p.t*p.total, k=0; while(k<p.lens.length-1&&dist>p.lens[k]){ dist-=p.lens[k]; k++; }
       const pt=p.segs[k].getPointAtLength(Math.min(dist,p.lens[k]));
-      p.c.setAttribute("cx",pt.x); p.c.setAttribute("cy",pt.y); p.h.setAttribute("cx",pt.x); p.h.setAttribute("cy",pt.y);
-      const op=!active?.55:(on?1:0);
-      p.c.setAttribute("opacity",op); p.h.setAttribute("opacity",op*.5);
+      p.hist.unshift([pt.x,pt.y]); if(p.hist.length>12) p.hist.pop();
+      const op=!act?.7:(on?1:0);
+      p.c.setAttribute("cx",pt.x); p.c.setAttribute("cy",pt.y); p.c.setAttribute("opacity",op);
+      p.trail.forEach((tc,j)=>{ const h=p.hist[Math.min(p.hist.length-1,(j+1)*2)]; if(h){ tc.setAttribute("cx",h[0]); tc.setAttribute("cy",h[1]); tc.setAttribute("opacity",op*(.7-j*.1)); } });
     });
   }
-  if(!reduce && map && now>zap.next && (selApp!==null||selTool)){ fireSelection(); zap.next=now+1700; }
   drawZap(now);
   if(!reduce) requestAnimationFrame(tick);
 }
+addEventListener("resize",spaceResize); spaceResize();
 
 fetch(MAP_URL,{cache:"no-store"}).then(r=>{ if(!r.ok) throw 0; return r.json(); })
   .then(m=>build(m,"live map"))
